@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ABP Sale Monitor</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%239E2235%22/%3E%3Ctext x=%2232%22 y=%2242%22 font-family=%22Georgia,serif%22 font-size=%2228%22 font-weight=%22700%22 fill=%22%23fff%22 text-anchor=%22middle%22%3EAB%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%23E3A21A%22/%3E%3Ctext x=%2232%22 y=%2242%22 font-family=%22Arial,sans-serif%22 font-size=%2226%22 font-weight=%22900%22 fill=%22%23fff%22 text-anchor=%22middle%22%3Eabp%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Playfair+Display:wght@700;800&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --brand:#9E2235; --brand-dk:#7E1A2A; --cream:#FBF7F2; --ink:#1F1A17;
-    --muted:#9a918a; --border:#e9e1d8;
+    --brand:#E3A21A; --charcoal:#4B5057; --terra:#D9532F; --cream:#F7F6F3; --ink:#2B2E33;
+    --muted:#8f949a; --border:#e4e2dc;
   }
   *{box-sizing:border-box}
   body{
@@ -21,11 +21,11 @@
     background:#fff; border-radius:20px; padding:40px 36px; width:360px; max-width:100%;
     box-shadow:0 8px 32px rgba(0,0,0,.08); border-top:5px solid var(--brand);
   }
-  .brand{ text-align:center; font-family:'Playfair Display',serif; font-size:28px; font-weight:800;
-          color:var(--brand); letter-spacing:.5px; }
+  .brand{ text-align:center; font-family:'Nunito',sans-serif; font-size:38px; font-weight:900;
+          color:var(--brand); letter-spacing:-.5px; line-height:1; }
   .brand-sub{ text-align:center; font-family:'Nunito',sans-serif; font-size:11px; font-weight:800;
-              letter-spacing:3px; color:var(--muted); text-transform:uppercase; margin:2px 0 22px; }
-  h1{ text-align:center; font-family:'Nunito',sans-serif; font-size:20px; font-weight:900; margin:0 0 18px; }
+              letter-spacing:2px; color:var(--brand); text-transform:uppercase; margin:2px 0 22px; }
+  h1{ text-align:center; font-family:'Nunito',sans-serif; font-size:18px; font-weight:900; margin:0 0 14px; color:var(--charcoal); }
   label{ display:block; font-family:'Nunito',sans-serif; font-size:11px; font-weight:800;
          letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin:16px 0 6px; }
   input{
@@ -35,23 +35,23 @@
   input:focus{ outline:none; border-color:var(--brand); }
   button{
     width:100%; margin-top:24px; padding:12px; border:none; border-radius:25px;
-    background:var(--brand); color:#fff; font-family:'Nunito',sans-serif; font-weight:800;
-    font-size:14px; letter-spacing:.5px; cursor:pointer; box-shadow:0 4px 12px rgba(158,34,53,.25);
+    background:var(--charcoal); color:#fff; font-family:'Nunito',sans-serif; font-weight:800;
+    font-size:14px; letter-spacing:.5px; cursor:pointer; box-shadow:0 4px 12px rgba(75,80,87,.25);
     transition:transform .15s, background .15s;
   }
-  button:hover{ background:var(--brand-dk); transform:translateY(-1px); }
+  button:hover{ background:#3a3e43; transform:translateY(-1px); }
   button:disabled{ opacity:.6; cursor:default; transform:none; }
   #err{
-    margin-top:14px; padding:10px 14px; background:#FBEEF0; border:1.5px solid #EFC9D0;
-    border-radius:10px; color:var(--brand-dk); font-size:13px; display:none;
+    margin-top:14px; padding:10px 14px; background:#FDEDE7; border:1.5px solid #F4C6B7;
+    border-radius:10px; color:#B23F1F; font-size:13px; display:none;
   }
 </style>
 </head>
 <body>
   <form class="card" id="loginForm">
-    <div class="brand">Au Bon Pain</div>
-    <div class="brand-sub">Cafe · Sale Monitor</div>
-    <h1>📈 เข้าสู่ระบบ</h1>
+    <div class="brand">au bon pain</div>
+    <div class="brand-sub">The Bakery Café</div>
+    <h1>📈 Sale Monitor</h1>
     <label for="u">Username</label>
     <input id="u" name="username" autocomplete="username" required>
     <label for="p">Password</label>
