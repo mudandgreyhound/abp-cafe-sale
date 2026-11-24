@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ABP Sale Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Playfair+Display:wght@700;800&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --brand:#9E2235; --brand-dk:#7E1A2A; --brand-lt:#F8ECEE; --brand-ln:#EFC9D0;
+    --gold:#B8892D; --cream:#FBF7F2; --ink:#1F1A17; --muted:#9a918a; --label:#8a6d5c;
+    --border:#e9e1d8; --line:#f1ebe4; --green:#16a34a; --red:#dc2626;
+    --blue:#3b82f6; --purple:#a855f7; --teal:#10b981; --orange:#e07a2f;
+  }
+  *{box-sizing:border-box}
+  body{ margin:0; background:var(--cream); color:var(--ink); font-family:'Sarabun','Nunito',sans-serif; }
+  .hidden{display:none !important}
+
+  /* ── sidebar ── */
+  .sidebar{ position:fixed; top:0; left:0; bottom:0; width:230px; background:#fff;
+    border-right:2px solid var(--line); padding:22px 0 16px; overflow-y:auto;
+    display:flex; flex-direction:column; z-index:10; }
+  .sb-logo{ padding:0 20px 16px; margin-bottom:10px; border-bottom:1px solid var(--line); text-align:center; }
+  .sb-brand{ font-family:'Playfair Display',serif; font-weight:800; font-size:24px; color:var(--brand); letter-spacing:.3px; }
+  .sb-sub{ font-family:'Nunito',sans-serif; font-weight:800; font-size:10px; letter-spacing:2px;
+           color:var(--muted); margin-top:4px; text-transform:uppercase; }
+  .sb-section{ padding:0 20px; margin-bottom:16px; }
+  .sb-label{ font-family:'Nunito',sans-serif; font-size:10px; font-weight:800; letter-spacing:1px;
+             text-transform:uppercase; color:var(--muted); margin-bottom:7px; }
+  .sb-link{ display:flex; align-items:center; gap:9px; padding:10px 12px; margin:2px -12px;
+            border-radius:10px; color:#374151; text-decoration:none; font-weight:700;
+            font-family:'Nunito',sans-serif; font-size:13px; }
+  .sb-link.active{ color:var(--brand); background:var(--brand-lt); }
+  .field{ display:flex; flex-direction:column; gap:5px; }
+  .field label{ font-family:'Nunito',sans-serif; font-size:10px; font-weight:800; letter-spacing:1px;
+                text-transform:uppercase; color:var(--muted); }
+  .field select, .field input{ padding:8px 10px; border:1.5px solid var(--border); border-radius:10px; width:100%;
+    background:var(--cream); font-family:'Sarabun',sans-serif; font-size:13px; color:var(--ink); }
+  .sb-footer{ margin-top:auto; padding:14px 20px 0; border-top:1px solid var(--line);
+              display:flex; flex-direction:column; gap:8px; }
+  .chip-btn{ border:none; border-radius:25px; padding:9px 18px; font-family:'Nunito',sans-serif;
+    font-weight:800; font-size:12px; letter-spacing:.5px; cursor:pointer; transition:transform .15s; }
+  .chip-btn:hover{ transform:translateY(-1px); }
+  .chip-btn.ghost{ background:#fff; color:var(--muted); border:1.5px solid var(--border); }
+  .auto-toggle{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); font-weight:700; }
+  .who{ font-size:12px; color:var(--muted); }
+
+  .page-title{ font-family:'Nunito',sans-serif; font-weight:900; font-size:20px; color:var(--ink);
+               display:flex; align-items:center; gap:8px; margin-bottom:16px; }
+  main{ margin-left:230px; padding:22px 28px 60px; max-width:1500px; }
+
+  .mobile-topbar{ display:none; }
+  @media (max-width:860px){
+    .mobile-topbar{ display:flex; align-items:center; gap:12px; background:#fff; border-bottom:2px solid var(--line);
+      padding:12px 16px; position:sticky; top:0; z-index:25; }
+    .mobile-topbar .hamburger-btn{ background:none; border:none; font-size:22px; cursor:pointer; color:var(--ink); padding:2px 6px; }
+    .mobile-topbar .mt-title{ font-family:'Nunito',sans-serif; font-weight:900; font-size:15px; color:var(--ink); }
+    .sb-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:30; opacity:0; pointer-events:none; transition:opacity .2s; }
+    .sb-overlay.open{ opacity:1; pointer-events:auto; }
+    .sidebar{ width:260px; max-width:82vw; transform:translateX(-100%); transition:transform .25s ease;
+      box-shadow:2px 0 24px rgba(0,0,0,.15); z-index:35; }
+    .sidebar.open{ transform:translateX(0); }
+    main{ margin-left:0; padding:16px 16px 48px; }
+  }
+
+  /* ── hero ── */
+  .banner{ background:linear-gradient(90deg,#FBF1F2,#FBF6EC); border:1px solid #f0dcd4; border-radius:16px;
+    padding:16px 22px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; }
+  .banner .left{ display:flex; align-items:center; gap:26px; flex-wrap:wrap; }
+  .banner .right{ display:flex; gap:26px; text-align:right; }
+  .lb{ color:var(--label); font-size:12px; font-weight:700; font-family:'Nunito',sans-serif; }
+  .arrow{ color:var(--brand); font-size:22px; }
+  .big{ font-size:26px; font-weight:800; font-family:'Nunito',sans-serif; }
+
+  .kpi-row{ display:flex; gap:14px; margin-bottom:16px; flex-wrap:wrap; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px 18px;
+         box-shadow:0 1px 3px rgba(0,0,0,.04); flex:1; min-width:150px; }
+  .card .val{ font-size:24px; font-weight:800; font-family:'Nunito',sans-serif; }
+  .card .sub{ font-size:12px; color:var(--muted); margin-top:2px; }
+
+  .pace-head{ display:flex; align-items:baseline; gap:10px; margin-bottom:6px; flex-wrap:wrap; }
+  .pace-head .t{ font-size:18px; font-weight:800; color:var(--brand); font-family:'Nunito',sans-serif; }
+  .pace-head .s{ color:var(--muted); font-size:13px; }
+  .pace-head .live{ margin-left:auto; color:var(--muted); font-size:12px; }
+  .pace-row{ display:flex; gap:14px; flex-wrap:wrap; }
+  .pace-row .val{ font-size:28px; }
+  .tag-up{ color:var(--green); font-size:12px; background:#ecfdf3; border-radius:6px; padding:1px 6px; display:inline-block; margin-top:2px; }
+  .tag-up.down{ color:var(--red); background:#fef2f2; }
+
+  /* ── 💰 toast ยอดเข้ารายสาขา ── */
+  #toastBox{ position:fixed; top:16px; right:16px; z-index:60; display:flex; flex-direction:column;
+             gap:8px; width:min(420px, calc(100vw - 32px)); pointer-events:none; }
+  .sm-toast{ pointer-events:auto; display:flex; align-items:flex-start; gap:10px; background:#fff;
+             border:1px solid var(--line); border-left:4px solid var(--brand); border-radius:12px;
+             padding:10px 12px; box-shadow:0 6px 24px rgba(0,0,0,.12); font-size:14px; line-height:1.45;
+             color:var(--ink); animation:smToastIn .25s ease-out; }
+  .sm-toast.out{ opacity:0; transform:translateX(16px); transition:opacity .3s, transform .3s; }
+  .sm-toast .ic{ font-size:18px; line-height:1.2; }
+  .sm-toast .tx{ flex:1; min-width:0; overflow-wrap:anywhere; }
+  .sm-toast .x{ border:none; background:none; color:var(--muted); font-size:16px; cursor:pointer; padding:0 2px; line-height:1; }
+  @keyframes smToastIn{ from{ opacity:0; transform:translateY(-8px); } to{ opacity:1; transform:none; } }
+  @media (max-width:860px){ #toastBox{ top:62px; } }
+
+  hr.div{ border:none; border-top:1px solid #ece5dd; margin:22px 0; }
+  .section-title{ font-weight:800; color:var(--brand); font-size:18px; margin-bottom:2px; font-family:'Nunito',sans-serif; }
+  .section-sub{ font-size:12px; color:var(--muted); margin-bottom:10px; }
+  .chart-box{ background:#fff; border-radius:16px; padding:16px; box-shadow:0 2px 20px rgba(0,0,0,.05); min-width:0; }
+  .chart-wrap{ position:relative; }
+  .two-col{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .three-col{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  @media (max-width:860px){ .two-col, .three-col{ grid-template-columns:minmax(0,1fr); } }
+
+  .cat-card{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px 18px;
+             box-shadow:0 1px 3px rgba(0,0,0,.04); flex:1; min-width:150px; border-top:4px solid #ccc; }
+  .cat-card .lb{ font-size:14px; margin-bottom:6px; }
+  .cat-card .amt{ font-size:28px; font-weight:900; letter-spacing:-.5px; font-family:'Nunito',sans-serif; }
+  .cat-card .meta{ font-size:13px; color:var(--muted); margin-top:2px; }
+
+  .share-bar{ display:flex; height:12px; border-radius:6px; overflow:hidden; background:var(--line); margin-top:10px; }
+
+  .bk-pair{ display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--line); font-size:14px; }
+  .bk-pair:last-child{ border-bottom:none; }
+  .bk-pair .lbl{ flex:1; min-width:0; }
+  .bk-pair .rt{ text-align:right; white-space:nowrap; }
+  .bk-pair .rt .v{ font-weight:800; }
+  .bk-pair .rt .s{ font-size:12px; color:var(--muted); }
+  .bk-rank{ width:18px; text-align:right; color:var(--muted); font-weight:700; font-size:12.5px; flex-shrink:0; }
+
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  thead th{ background:var(--brand-lt); color:var(--brand); font-family:'Nunito',sans-serif; font-size:11px;
+            font-weight:800; text-transform:uppercase; letter-spacing:.6px; border-bottom:2px solid var(--brand-ln);
+            padding:10px 12px; text-align:left; white-space:nowrap; }
+  tbody td{ background:#fff; color:#374151; font-weight:500; border-bottom:1px solid #f6f1ea; padding:9px 12px; }
+  tbody tr:hover td{ background:#fcf8f8; }
+  .tbl-wrap{ background:#fff; border-radius:14px; overflow:auto; box-shadow:0 1px 8px rgba(0,0,0,.05); }
+  .rank-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
+  .rank-search{ display:flex; align-items:center; gap:6px; flex:0 1 340px; min-width:200px;
+                padding:0 8px 0 12px; height:38px; background:var(--cream);
+                border:1.5px solid var(--border); border-radius:10px; transition:border-color .15s; }
+  .rank-search:focus-within{ border-color:var(--brand); }
+  .rank-search input{ flex:1; min-width:0; border:none; outline:none; background:transparent;
+                      font-family:'Sarabun',sans-serif; font-size:14px; color:var(--ink); }
+  .rank-search button{ border:none; background:none; color:var(--muted); cursor:pointer; font-size:14px; padding:2px 4px; visibility:hidden; }
+  .rank-count{ font-size:12px; color:var(--muted); margin:-4px 0 8px; }
+  .rank-count:empty{ display:none; }
+  .num{ text-align:right; font-variant-numeric:tabular-nums; }
+  .type-badge{ display:inline-block; padding:1px 8px; border-radius:10px; background:var(--brand-lt);
+               color:var(--brand-dk); font-size:11.5px; font-weight:700; white-space:nowrap; }
+
+  .dm-row{ display:flex; align-items:center; gap:12px; margin:8px 0; }
+  .dm-rank{ width:20px; text-align:right; color:var(--muted); font-weight:700; font-size:13px; }
+  .dm-name-box{ width:170px; flex-shrink:0; }
+  .dm-name{ font-weight:700; color:#374151; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dm-meta{ font-size:11px; color:var(--muted); }
+  .dm-bar-track{ flex:1; position:relative; height:24px; background:#f6f1ea; border-radius:6px; min-width:60px; }
+  .dm-bar-fill{ height:100%; background:linear-gradient(90deg,#9E2235,#c4475a); border-radius:6px; }
+  .dm-bar-mark{ position:absolute; top:-3px; bottom:-3px; width:2px; background:#111; opacity:.5; }
+  .dm-val{ width:96px; text-align:right; font-weight:800; font-size:13px; }
+  .dm-pct{ width:66px; text-align:right; font-weight:700; font-size:13px; }
+  @media (max-width:560px){ .dm-name-box{ width:110px; } .dm-val{ width:78px; } .dm-pct{ width:56px; } }
+
+  .pay-legend-row{ display:flex; align-items:center; gap:10px; margin:11px 0; }
+  .dot{ width:12px; height:12px; border-radius:3px; display:inline-block; flex-shrink:0; }
+  .pay-legend-row .name{ flex:1; color:#374151; font-weight:600; }
+  .pay-legend-row .amt{ font-weight:800; color:#111; }
+  .pay-legend-row .pct{ color:var(--muted); width:52px; text-align:right; }
+
+  .rank-row{ display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; }
+  .rank-row:last-child{ border-bottom:none; }
+  .rank-num{ width:18px; text-align:right; color:var(--muted); font-weight:700; font-size:12.5px; flex-shrink:0; }
+  .rank-name{ flex:1; min-width:0; overflow-wrap:anywhere; }
+  .rank-code{ color:var(--muted); font-size:13px; font-weight:600; }
+  .rank-val{ text-align:right; white-space:nowrap; }
+  .rank-val .v{ font-weight:800; font-size:15px; }
+  .rank-val .s{ font-size:13px; color:var(--muted); }
+
+  #loadOverlay{ position:fixed; inset:0; background:rgba(251,247,242,.7); display:flex; align-items:center;
+    justify-content:center; font-family:'Nunito',sans-serif; font-weight:800; color:var(--brand); z-index:50; }
+  #errBox{ background:#FBEEF0; border:1.5px solid var(--brand-ln); border-radius:14px; color:var(--brand-dk);
+    padding:12px 16px; margin-bottom:16px; font-size:13px; }
+</style>
+</head>
+<body>
+
+<div id="loadOverlay" class="hidden">กำลังโหลดข้อมูล...</div>
+<div id="toastBox" aria-live="polite"></div>
+
+<div class="mobile-topbar">
+  <button class="hamburger-btn" id="btnMobileMenu" aria-label="เมนู">☰</button>
+  <span class="mt-title">📈 ABP Sale Monitor</span>
+</div>
+<div class="sb-overlay" id="sbOverlay"></div>
+
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-brand">Au Bon Pain</div>
+    <div class="sb-sub">Cafe · Sale Monitor</div>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-label">หน้า</div>
+    <a href="index.html" class="sb-link active">📈 Sale Monitor</a>
+  </div>
+
+  <div class="sb-section field">
+    <label for="smDate">วันที่</label>
+    <input type="date" id="smDate">
+  </div>
+  <div class="sb-section field">
+    <label for="smType">ประเภทร้าน</label>
+    <select id="smType"><option value="">ทุกประเภทร้าน</option></select>
+  </div>
+  <div class="sb-section field">
+    <label for="smTopN">Top สาขา (กราฟ)</label>
+    <select id="smTopN">
+      <option>10</option><option selected>15</option><option>20</option><option>30</option><option>50</option>
+    </select>
+  </div>
+  <div class="sb-section field">
+    <label for="smRankPP">ต่อหน้า (ranking)</label>
+    <select id="smRankPP">
+      <option>25</option><option>50</option><option selected>100</option><option>200</option>
+    </select>
+  </div>
+
+  <div class="sb-section">
+    <label class="auto-toggle"><input type="checkbox" id="smAuto" checked> <span id="smAutoLabel">auto-refresh 30 วิ</span></label>
+    <label class="auto-toggle" style="margin-top:6px"><input type="checkbox" id="smToastOn" checked> 🔔 เด้งแจ้งยอดเข้ารายสาขา</label>
+  </div>
+
+  <div class="sb-footer">
+    <span class="who" id="whoLabel"></span>
+    <button class="chip-btn ghost" id="btnRefresh">🔄 REFRESH</button>
+    <button class="chip-btn ghost" id="btnLogout">ออกจากระบบ</button>
+  </div>
+</aside>
+
+<main>
+  <div class="page-title">📈 ABP Cafe · Sale Monitor</div>
+  <div id="errBox" class="hidden"></div>
+
+  <div id="dashboard">
+    <div class="banner">
+      <div class="left">
+        <div><div class="lb">Gross Sale · ก่อนหักส่วนลด</div>
+             <div class="big" style="color:#6b7280" id="valGross">฿0</div></div>
+        <div class="arrow">&#8594;</div>
+        <div><div class="lb">ส่วนลดที่จ่าย · Discount</div>
+             <div class="big" style="color:var(--gold)" id="valDisc">฿0</div></div>
+        <div class="arrow">&#8594;</div>
+        <div><div class="lb">ยอดขายสุทธิ · Net sale</div>
+             <div class="big" style="color:var(--brand)" id="valNet">฿0</div></div>
+      </div>
+      <div class="right">
+        <div><div class="lb">Discount / Sale</div><div class="card-val big" style="font-size:22px" id="valDiscPct">0.0%</div></div>
+        <div><div class="lb">ส่วนลด / บิล</div><div class="big" style="font-size:22px" id="valDiscPerBill">฿0</div></div>
+      </div>
+    </div>
+
+    <div class="kpi-row">
+      <div class="card"><div class="lb">จำนวนบิล</div><div class="val" id="valBills">0</div></div>
+      <div class="card"><div class="lb">AVG / BILL</div><div class="val" id="valAvgBill">฿0</div></div>
+      <div class="card"><div class="lb">บิลสมาชิก</div><div class="val" id="valMembers">0</div>
+        <div class="sub" id="valMemberPct">0% ของบิล</div></div>
+      <div class="card"><div class="lb">สาขาขายแล้ว</div><div class="val" id="valShops">0</div></div>
+    </div>
+
+    <div class="pace-head">
+      <span class="t">📡 Sale Monitor</span>
+      <span class="s">เรียลไทม์ วันนี้ vs เมื่อวาน</span>
+      <span class="live" id="liveLabel"></span>
+    </div>
+    <div class="pace-row">
+      <div class="card"><div class="lb" id="lbNetPace">ยอดวันนี้</div>
+           <div class="val" style="color:var(--brand)" id="valNetPace">฿0</div></div>
+      <div class="card"><div class="lb" id="lbYdayFull">เมื่อวาน (ทั้งวัน)</div>
+           <div class="val" id="valYdayFull">฿0</div></div>
+      <div class="card"><div class="lb" id="lbPace">เทียบเมื่อวาน ณ เวลาเดียวกัน</div>
+           <div class="val" id="valPacePct">▲ 0.0%</div>
+           <div class="tag-up" id="valYdaySame">เมื่อวาน ฿0</div></div>
+    </div>
+
+    <hr class="div">
+
+    <div class="chart-box">
+      <div class="section-title">🏆 Top สาขา วันนี้ vs เมื่อวาน</div>
+      <div class="chart-wrap" id="chartTopShopsWrap"><canvas id="chartTopShops" height="90"></canvas></div>
+    </div>
+
+    <hr class="div">
+
+    <div class="chart-box">
+      <div class="section-title">📊 ยอดขายรายชั่วโมง</div>
+      <div class="section-sub">แท่ง = วันนี้ · เส้นประ = เมื่อวาน · เส้นทอง = ส่วนลด (แกนขวา)</div>
+      <div class="chart-wrap" id="chartHourlyWrap"><canvas id="chartHourly" height="90"></canvas></div>
+    </div>
+
+    <hr class="div">
+
+    <div class="two-col">
+      <div class="chart-box">
+        <div class="section-title">💳 สัดส่วนการจ่ายเงิน</div>
+        <div class="section-sub">เงินรับจริง (เงินสดหักเงินทอน + บัตร/QR/delivery/e-wallet/คูปององค์กร) · ไม่รวมส่วนลด</div>
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px;max-width:320px"><canvas id="chartPay"></canvas></div>
+          <div style="flex:1;min-width:220px" id="payLegend"></div>
+        </div>
+      </div>
+      <div class="chart-box">
+        <div class="section-title" style="color:var(--gold)">🎟️ Top โปรโมชั่น / ส่วนลด</div>
+        <div class="section-sub">ส่วนลดที่ให้ (คูปอง · ส่วนลดสินค้า · voucher · ส่วนลดท้ายบิล)</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>โปรโมชั่น</th><th class="num">ส่วนลด (฿)</th><th class="num">บิล</th></tr></thead>
+            <tbody id="promoBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <hr class="div">
+
+    <div class="chart-box" id="custSection">
+      <div class="section-title">👥 สมาชิก vs ลูกค้าทั่วไป</div>
+      <div class="section-sub">สมาชิก = บิลที่ผูกบัตรสมาชิก</div>
+      <div class="kpi-row" id="custRow" style="margin-bottom:0"></div>
+      <div class="share-bar" id="custBar"></div>
+    </div>
+
+    <hr class="div">
+
+    <div id="catSection">
+      <div class="section-title" style="font-size:20px">📊 แยกหมวดสินค้า</div>
+      <div class="section-sub">ตามหมวด (Department) ใน CM POS · ยอดสินค้า = ราคาหลังส่วนลดรายการ (ก่อนส่วนลดท้ายบิล)</div>
+      <div class="kpi-row" id="catKpiRow"></div>
+    </div>
+
+    <div id="topMenuSection" style="margin-top:4px">
+      <div class="section-title">🏆 สินค้าขายดีแยกหมวด</div>
+      <div class="three-col" id="topCatCols"></div>
+    </div>
+
+    <hr class="div">
+
+    <div id="basketSection">
+      <div class="section-title" style="font-size:20px">🧺 ซื้อคู่กัน (Basket)</div>
+      <div class="section-sub">attach rate = % ของบิลที่มีอาหาร (Food) ซึ่งซื้อเครื่องดื่ม (Beverage) ด้วย</div>
+      <div class="kpi-row" id="basketKpiRow"></div>
+      <div class="two-col" style="margin-top:14px">
+        <div class="chart-box">
+          <div class="lb" style="margin-bottom:8px">🏆 เมนูขายดีรวม (Top 15)</div>
+          <div id="topItemBody"></div>
+        </div>
+        <div class="chart-box">
+          <div class="lb" style="margin-bottom:8px">🧺 สินค้าที่ขายคู่กันบ่อย
+            <span style="color:#c0b8af;font-weight:400">(บิล · conf · lift)</span></div>
+          <div id="basketPairBody"></div>
+        </div>
+      </div>
+      <div class="section-sub" style="margin-top:8px">conf = % ของบิลสินค้าตัวที่ขายน้อยกว่า ที่ซื้ออีกตัวด้วย ·
+        lift &gt; 1 = ซื้อคู่กันมากกว่าบังเอิญ</div>
+    </div>
+
+    <hr class="div" id="typePerfDiv">
+
+    <div id="typePerfSection" class="chart-box hidden">
+      <div class="section-title">🏷️ ยอดตามประเภทร้าน</div>
+      <div class="section-sub">เส้นดำ = ยอดเมื่อวาน ณ เวลาเดียวกัน · % = เทียบเมื่อวาน (pace)</div>
+      <div id="typePerfBody"></div>
+    </div>
+
+    <hr class="div">
+
+    <div class="chart-box">
+      <div class="rank-head">
+        <div class="section-title">🏪 รายรับตามสาขา</div>
+        <div class="rank-search">
+          <span style="font-size:13px;opacity:.6">🔍</span>
+          <input type="text" id="rankQ" placeholder="ค้นหา รหัส / ชื่อสาขา / ประเภท" autocomplete="off" spellcheck="false">
+          <button type="button" id="rankQClr" title="ล้าง">✕</button>
+        </div>
+      </div>
+      <div class="rank-count" id="rankCount"></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th>รหัส</th><th>สาขา</th><th>ประเภท</th>
+            <th class="num">ยอดวันนี้</th><th class="num">บิล</th><th class="num">Avg/บิล</th>
+            <th class="num">เทียบเมื่อวาน %</th><th>บิลล่าสุด</th>
+          </tr></thead>
+          <tbody id="shopsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ─────────────────────────── AUTH GUARD ───────────────────────────
+const API_BASE = "https://abp-cafe-sale.mobile1234.site";
+const LS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } };
+
+const token = LS('abp_token');
+const tokenExp = parseInt(LS('abp_token_exp') || '0', 10);
+if (!token || Date.now() >= tokenExp) window.location.href = 'login.html';
+document.getElementById('whoLabel').textContent = LS('abp_full_name') || '';
+
+function logout() {
+  LS('abp_token', null); LS('abp_token_exp', null); LS('abp_full_name', null);
+  window.location.href = 'login.html';
+}
+document.getElementById('btnLogout').addEventListener('click', logout);
+
+const sidebarEl = document.querySelector('.sidebar');
+const sbOverlay = document.getElementById('sbOverlay');
+document.getElementById('btnMobileMenu').addEventListener('click', () => { sidebarEl.classList.add('open'); sbOverlay.classList.add('open'); });
+sbOverlay.addEventListener('click', () => { sidebarEl.classList.remove('open'); sbOverlay.classList.remove('open'); });
+
+async function apiGet(path) {
+  const res = await fetch(`${API_BASE}${path}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (res.status === 401) { logout(); return null; }
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || `โหลดข้อมูลไม่สำเร็จ (${res.status})`);
+  }
+  return res.json();
+}
+
+// ─────────────────────────── STATE ───────────────────────────
+const dateEl = document.getElementById('smDate');
+const typeEl = document.getElementById('smType');
+const topNEl = document.getElementById('smTopN');
+const rankPPEl = document.getElementById('smRankPP');
+const autoEl = document.getElementById('smAuto');
+const toastOnEl = document.getElementById('smToastOn');
+const errBox = document.getElementById('errBox');
+const overlay = document.getElementById('loadOverlay');
+
+const SM_REFRESH_SEC = 30;
+document.getElementById('smAutoLabel').textContent = `auto-refresh ${SM_REFRESH_SEC} วิ`;
+let autoTimer = null;
+let loadSeq = 0, inflight = 0;
+let toastState = null;
+const charts = { topShops: null, hourly: null, pay: null };
+const lastValues = {};
+
+const MOBILE_CHART_BREAKPOINT = 860;
+const isMobileChart = () => window.innerWidth <= MOBILE_CHART_BREAKPOINT;
+let lastTopShopsRows = [], lastHourlyRows = [];
+let lastChartMode = isMobileChart() ? 'mobile' : 'desktop';
+function handleChartResize() {
+  const mode = isMobileChart() ? 'mobile' : 'desktop';
+  if (mode === lastChartMode) return;
+  lastChartMode = mode;
+  if (lastTopShopsRows.length) renderTopShops(lastTopShopsRows);
+  if (lastHourlyRows.length) renderHourly(lastHourlyRows);
+}
+let chartResizeTimer = null;
+window.addEventListener('resize', () => { clearTimeout(chartResizeTimer); chartResizeTimer = setTimeout(handleChartResize, 200); });
+window.addEventListener('orientationchange', handleChartResize);
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+dateEl.value = todayStr();
+
+// ─────────────────────────── FORMAT HELPERS ───────────────────────────
+const fmtBaht = (n) => '฿' + Math.round(n || 0).toLocaleString('en-US');
+const fmtInt = (n) => Math.round(n || 0).toLocaleString('en-US');
+const fmtPct = (n) => (n === null || n === undefined) ? '—' : n.toFixed(1) + '%';
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+
+function countUp(el, from, to, fmt) {
+  const dur = 750, t0 = performance.now();
+  function step(ts) {
+    const p = Math.min((ts - t0) / dur, 1), ease = 1 - Math.pow(1 - p, 3);
+    el.textContent = fmt(from + (to - from) * ease);
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+function setNum(id, val, fmt) {
+  const el = document.getElementById(id);
+  countUp(el, lastValues[id] ?? 0, val || 0, fmt);
+  lastValues[id] = val || 0;
+}
+
+// ─────────────────────────── TYPE OPTIONS ───────────────────────────
+async function loadTypeOptions() {
+  try {
+    const data = await apiGet(`/api/sale-monitor/type-options?biz_date=${dateEl.value}`);
+    if (!data) return;
+    const cur = typeEl.value;
+    typeEl.innerHTML = '<option value="">ทุกประเภทร้าน</option>' +
+      data.types.map(t => `<option value="${esc(t.code)}">${esc(t.name)} (${t.shops})</option>`).join('');
+    if (data.types.some(t => t.code === cur)) typeEl.value = cur;
+  } catch (e) { /* ไม่ critical */ }
+}
+
+// ─────────────────────────── MAIN LOAD ───────────────────────────
+async function loadSummary(silent = false) {
+  if (silent && inflight) return;
+  const my = ++loadSeq; inflight++;
+  if (!silent) overlay.classList.remove('hidden');
+  try {
+    const params = new URLSearchParams({ biz_date: dateEl.value, stype: typeEl.value, top_n: topNEl.value });
+    const d = await apiGet(`/api/sale-monitor/summary?${params}`);
+    if (!d || my !== loadSeq) return;
+    errBox.classList.add('hidden');
+    render(d);
+    maybeToast(d);
+  } catch (e) {
+    if (my === loadSeq) {
+      errBox.textContent = e.message === 'Failed to fetch' ? 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — จะลองใหม่รอบถัดไป' : e.message;
+      errBox.classList.remove('hidden');
+    }
+  } finally {
+    inflight--;
+    if (my === loadSeq) overlay.classList.add('hidden');
+  }
+}
+
+// ─────────────────────────── RENDER ───────────────────────────
+function render(d) {
+  const t = d.totals, c = d.compare;
+  setNum('valGross', t.gross, fmtBaht);
+  setNum('valDisc', t.discount, fmtBaht);
+  setNum('valNet', t.net, fmtBaht);
+  document.getElementById('valDiscPct').textContent = fmtPct(t.disc_pct);
+  document.getElementById('valDiscPerBill').textContent = fmtBaht(t.disc_per_bill);
+  setNum('valBills', t.bills, fmtInt);
+  setNum('valAvgBill', t.avg_bill, fmtBaht);
+  setNum('valMembers', t.members, fmtInt);
+  document.getElementById('valMemberPct').textContent = `${fmtPct(t.member_pct)} ของบิล`;
+  setNum('valShops', t.shops, fmtInt);
+
+  const snapT = d.snapshot_time || '--:--';
+  document.getElementById('liveLabel').textContent = d.is_today ? `🟢 live · อัปเดต ${snapT}` : `📅 ${d.date}`;
+  let refTxt;
+  if (d.is_today) {
+    document.getElementById('lbNetPace').textContent = `ยอดวันนี้ (ณ ${snapT})`;
+    document.getElementById('lbYdayFull').textContent = 'เมื่อวาน (ทั้งวัน)';
+    document.getElementById('lbPace').textContent = 'เทียบเมื่อวาน ณ เวลาเดียวกัน';
+    refTxt = `${c.exact === false ? '≈ ' : ''}เมื่อวาน ณ ${snapT} ${fmtBaht(c.net_yesterday_same_time)}`;
+  } else {
+    document.getElementById('lbNetPace').textContent = `ยอด ${d.date} (ทั้งวัน)`;
+    document.getElementById('lbYdayFull').textContent = 'วันก่อนหน้า (ทั้งวัน)';
+    document.getElementById('lbPace').textContent = 'เทียบวันก่อนหน้า (ทั้งวัน)';
+    refTxt = `วันก่อนหน้า ${fmtBaht(c.net_yesterday_same_time)}`;
+  }
+  const diff = c.pace_diff ?? (t.net - c.net_yesterday_same_time);
+  refTxt += ` · ${diff >= 0 ? '+' : '−'}${fmtBaht(Math.abs(diff))}`;
+  setNum('valNetPace', t.net, fmtBaht);
+  setNum('valYdayFull', c.net_yesterday_full, fmtBaht);
+  const paceEl = document.getElementById('valPacePct');
+  const up = c.pace_pct >= 0;
+  paceEl.style.color = up ? 'var(--green)' : 'var(--red)';
+  paceEl.textContent = c.net_yesterday_same_time ? `${up ? '▲' : '▼'} ${Math.abs(c.pace_pct).toFixed(1)}%` : '—';
+  const refEl = document.getElementById('valYdaySame');
+  refEl.textContent = refTxt;
+  refEl.classList.toggle('down', !up);
+
+  renderTopShops(d.top_shops);
+  renderHourly(d.hourly);
+  renderPay(d.payment);
+  renderPromo(d.promo);
+  renderCustomers(d.customers, t);
+  renderCategories(d.categories);
+  renderTopByCat(d.top_by_category, d.categories);
+  renderBasket(d.basket, d.top_items);
+  renderTypePerf(d.type_performance);
+  renderShopsTable(d.shops_ranking);
+}
+
+const EMPTY_MSG = '<div style="color:var(--muted);font-size:14px">ยังไม่มีข้อมูล</div>';
+function rankRows(rows, valFmt, subFmt) {
+  return rows.map((r, i) => `
+    <div class="rank-row">
+      <div class="rank-num">${i + 1}</div>
+      <div class="rank-name">${esc(r.item_name || r.item_code)}<br><span class="rank-code">${esc(r.item_code)}</span></div>
+      <div class="rank-val"><div class="v">${valFmt(r)}</div><div class="s">${subFmt(r)}</div></div>
+    </div>`).join('');
+}
+
+// หมวดสินค้า (Department ของ CM POS)
+const CAT_META = {
+  'Food':     { icon: '🥪', color: '#9E2235', th: 'อาหาร / เบเกอรี่' },
+  'Beverage': { icon: '☕', color: '#3b82f6', th: 'เครื่องดื่ม' },
+  'Other':    { icon: '🧁', color: '#B8892D', th: 'อื่นๆ (Other)' },
+};
+const catMeta = (k) => CAT_META[k] || { icon: '📦', color: '#9a918a', th: k };
+
+function renderCategories(cats) {
+  const row = document.getElementById('catKpiRow');
+  const sec = document.getElementById('catSection');
+  if (!cats || !cats.length) { sec.classList.add('hidden'); return; }
+  sec.classList.remove('hidden');
+  const grand = cats.reduce((s, c) => s + (c.net_amt || 0), 0) || 1;
+  row.innerHTML = cats.filter(c => c.net_amt >= grand * 0.005).map(c => {
+    const m = catMeta(c.category);
+    return `<div class="cat-card" style="border-top-color:${m.color}">
+      <div class="lb">${m.icon} ${esc(m.th)}</div>
+      <div class="amt" style="color:${m.color}">${fmtBaht(c.net_amt)}</div>
+      <div class="meta">${fmtInt(c.qty)} ชิ้น · ${(c.net_amt / grand * 100).toFixed(1)}% ของยอด · ${fmtInt(c.items)} รายการ</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTopByCat(byCat, cats) {
+  const box = document.getElementById('topCatCols');
+  const keys = (cats || []).map(c => c.category).filter(k => byCat && byCat[k]).slice(0, 3);
+  if (!keys.length) { box.innerHTML = `<div class="chart-box">${EMPTY_MSG}</div>`; return; }
+  box.innerHTML = keys.map(k => {
+    const m = catMeta(k);
+    const unit = k === 'Beverage' ? 'แก้ว' : 'ชิ้น';
+    return `<div class="chart-box"><div class="lb" style="margin-bottom:8px;color:${m.color}">${m.icon} ${esc(m.th)} ขายดี</div>
+      ${rankRows(byCat[k], r => fmtBaht(r.net_amt), r => `${fmtInt(r.qty)} ${unit}`)}</div>`;
+  }).join('');
+}
+
+function renderBasket(bk, topItems) {
+  document.getElementById('topItemBody').innerHTML = (topItems && topItems.length)
+    ? rankRows(topItems, r => fmtBaht(r.net_amt), r => `${fmtInt(r.qty)} · ${esc(r.dept || '')}`) : EMPTY_MSG;
+  const kpi = document.getElementById('basketKpiRow');
+  if (!bk || !bk.daily) {
+    kpi.innerHTML = ''; document.getElementById('basketPairBody').innerHTML = EMPTY_MSG; return;
+  }
+  const t = bk.daily;
+  kpi.innerHTML = `
+    <div class="card"><div class="lb">🥪 บิลมีอาหาร</div><div class="val">${fmtInt(t.food_bills)}</div></div>
+    <div class="card"><div class="lb">☕ บิลมีเครื่องดื่ม</div><div class="val">${fmtInt(t.bev_bills)}</div></div>
+    <div class="card"><div class="lb">🥪+☕ ซื้อคู่</div><div class="val">${fmtInt(t.food_bev_bills)}</div></div>
+    <div class="card"><div class="lb">📎 Attach Rate</div><div class="val">${t.attach_rate.toFixed(1)}%</div>
+      <div class="sub">เฉลี่ย ${t.avg_items_bill.toFixed(2)} รายการ/บิล</div></div>`;
+  const pr = bk.pairs || [];
+  document.getElementById('basketPairBody').innerHTML = pr.length ? pr.map((x, i) => `
+    <div class="bk-pair">
+      <div class="bk-rank">${i + 1}</div>
+      <div class="lbl">${catMeta(x.dept_a).icon} ${esc(x.name_a)} <span style="color:#c0b8af">+</span> ${catMeta(x.dept_b).icon} ${esc(x.name_b)}</div>
+      <div class="rt"><div class="v">${fmtInt(x.pair_bills)} บิล</div>
+        <div class="s">conf ${x.confidence.toFixed(0)}% · lift ${x.lift.toFixed(1)}</div></div>
+    </div>`).join('') : '<div style="color:var(--muted);font-size:14px">ยังไม่มีคู่ที่ถึงเกณฑ์ (≥3 บิล)</div>';
+}
+
+function renderTopShops(rows) {
+  lastTopShopsRows = rows || [];
+  rows = lastTopShopsRows.slice(0, isMobileChart() ? 10 : 15);
+  const ctx = document.getElementById('chartTopShops');
+  const wrap = document.getElementById('chartTopShopsWrap');
+  const labels = rows.map(r => `${r.shop_code} ${String(r.shop_name || '').slice(0, 18)}`);
+  const horizontal = isMobileChart();
+  const catAxis = { ticks: { autoSkip: false, maxRotation: horizontal ? 0 : 50, minRotation: horizontal ? 0 : 40 } };
+  const valAxis = { grid: { color: '#f1ebe4' } };
+  const cfg = {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label: 'วันนี้', data: rows.map(r => r.today), backgroundColor: '#9E2235' },
+      { label: 'เมื่อวาน', data: rows.map(r => r.yday), backgroundColor: '#E8C4CB' },
+    ] },
+    options: { indexAxis: horizontal ? 'y' : 'x', responsive: true, maintainAspectRatio: !horizontal,
+      plugins: { legend: { position: 'top' } }, scales: horizontal ? { y: catAxis, x: valAxis } : { x: catAxis, y: valAxis } },
+  };
+  wrap.style.height = horizontal ? Math.max(220, labels.length * 32) + 'px' : '';
+  if (charts.topShops) charts.topShops.destroy();
+  charts.topShops = new Chart(ctx, cfg);
+}
+
+function renderHourly(rows) {
+  lastHourlyRows = rows || [];
+  const ctx = document.getElementById('chartHourly');
+  const wrap = document.getElementById('chartHourlyWrap');
+  const labels = lastHourlyRows.map(r => String(r.hour).padStart(2, '0'));
+  const horizontal = isMobileChart();
+  const axisKey = horizontal ? 'xAxisID' : 'yAxisID';
+  const p = horizontal ? 'x' : 'y', s = horizontal ? 'x1' : 'y1';
+  const catAxis = { ticks: { autoSkip: false } };
+  const primaryAxis = { position: horizontal ? 'bottom' : 'left', title: { display: true, text: 'ยอดขาย' }, grid: { color: '#f1ebe4' } };
+  const secondaryAxis = { position: horizontal ? 'top' : 'right', title: { display: true, text: 'ส่วนลด' }, grid: { display: false } };
+  const cfg = {
+    type: 'bar',
+    data: { labels, datasets: [
+      { type: 'bar', label: 'ยอดขายวันนี้', data: lastHourlyRows.map(r => r.net_sales), backgroundColor: '#9E2235', [axisKey]: p, order: 2 },
+      { type: 'line', label: 'เมื่อวาน', data: lastHourlyRows.map(r => r.yday), borderColor: '#c9a3aa', backgroundColor: '#c9a3aa',
+        borderDash: [6, 4], pointRadius: 2, tension: 0.35, [axisKey]: p, order: 1 },
+      { type: 'line', label: 'ส่วนลด', data: lastHourlyRows.map(r => r.discount), borderColor: '#B8892D', backgroundColor: '#B8892D',
+        pointRadius: 2, tension: 0.35, [axisKey]: s, order: 0 },
+    ] },
+    options: { indexAxis: horizontal ? 'y' : 'x', responsive: true, maintainAspectRatio: !horizontal,
+      plugins: { legend: { position: 'top' } },
+      scales: horizontal ? { y: catAxis, x: primaryAxis, x1: secondaryAxis } : { x: catAxis, y: primaryAxis, y1: secondaryAxis } },
+  };
+  wrap.style.height = horizontal ? Math.max(320, labels.length * 26) + 'px' : '';
+  if (charts.hourly) charts.hourly.destroy();
+  charts.hourly = new Chart(ctx, cfg);
+}
+
+const PAY_PALETTE = {
+  'เงินสด': '#9E2235', 'QR PromptPay': '#10b981', 'บัตรเครดิต': '#3b82f6',
+  'Delivery': '#e07a2f', 'e-Wallet': '#a855f7', 'คูปอง/เครดิตองค์กร': '#B8892D',
+};
+function renderPay(payment) {
+  const names = Object.keys(payment.groups || {}).filter(n => payment.groups[n] > 0);
+  const vals = names.map(n => payment.groups[n]);
+  const cols = names.map(n => PAY_PALETTE[n] || '#d9c7b8');
+  if (charts.pay) charts.pay.destroy();
+  charts.pay = names.length ? new Chart(document.getElementById('chartPay'), {
+    type: 'doughnut', data: { labels: names, datasets: [{ data: vals, backgroundColor: cols }] },
+    options: { cutout: '58%', plugins: { legend: { display: false } } },
+  }) : null;
+  const total = vals.reduce((a, b) => a + b, 0);
+  document.getElementById('payLegend').innerHTML = names.map((n, i) => `
+    <div class="pay-legend-row">
+      <span class="dot" style="background:${cols[i]}"></span>
+      <span class="name">${esc(n)}</span>
+      <span class="amt">${fmtBaht(vals[i])}</span>
+      <span class="pct">${total ? (vals[i] / total * 100).toFixed(1) : '0.0'}%</span>
+    </div>`).join('') || EMPTY_MSG;
+}
+
+function renderPromo(promo) {
+  document.getElementById('promoBody').innerHTML = (promo || []).map((p, i) => `
+    <tr><td>${i + 1}</td><td>${esc(p.name)}<div style="font-size:11px;color:var(--muted)">${esc(p.code)}</div></td>
+      <td class="num">${fmtBaht(p.amt)}</td><td class="num">${fmtInt(p.bills)}</td></tr>`).join('')
+    || '<tr><td colspan="4" style="text-align:center;color:var(--muted)">ไม่มีข้อมูล</td></tr>';
+}
+
+function renderCustomers(cust, t) {
+  const m = (cust && cust.Member) || { bills: 0, net: 0 }, g = (cust && cust.Guest) || { bills: 0, net: 0 };
+  const tot = (m.net + g.net) || 1;
+  const card = (lb, x, col) => `<div class="card"><div class="lb">${lb}</div>
+    <div class="val" style="color:${col}">${fmtBaht(x.net)}</div>
+    <div class="sub">${fmtInt(x.bills)} บิล · เฉลี่ย ${fmtBaht(x.bills ? x.net / x.bills : 0)}/บิล · ${(x.net / tot * 100).toFixed(1)}% ของยอด</div></div>`;
+  document.getElementById('custRow').innerHTML = card('⭐ สมาชิก', m, 'var(--brand)') + card('🙂 ลูกค้าทั่วไป', g, '#6b7280');
+  document.getElementById('custBar').innerHTML =
+    `<div style="width:${(m.net / tot * 100).toFixed(1)}%;background:var(--brand)"></div><div style="flex:1;background:#d6cfc8"></div>`;
+}
+
+function renderTypePerf(rows) {
+  const sec = document.getElementById('typePerfSection'), div = document.getElementById('typePerfDiv');
+  if (!rows || !rows.length) { sec.classList.add('hidden'); div.classList.add('hidden'); return; }
+  sec.classList.remove('hidden'); div.classList.remove('hidden');
+  const mx = Math.max(1, ...rows.map(r => Math.max(r.today, r.yday)));
+  document.getElementById('typePerfBody').innerHTML = rows.map((r, i) => {
+    const pct = r.yday ? (r.today - r.yday) / r.yday * 100 : 0, up = pct >= 0;
+    return `<div class="dm-row">
+      <div class="dm-rank">${i + 1}</div>
+      <div class="dm-name-box"><div class="dm-name">${esc(r.name)}</div>
+        <div class="dm-meta">${r.shops} สาขา · ${fmtInt(r.bills)} บิล</div></div>
+      <div class="dm-bar-track"><div class="dm-bar-fill" style="width:${(r.today / mx * 100).toFixed(1)}%"></div>
+        <div class="dm-bar-mark" style="left:${(r.yday / mx * 100).toFixed(1)}%"></div></div>
+      <div class="dm-val">${fmtBaht(r.today)}</div>
+      <div class="dm-pct" style="color:${up ? 'var(--green)' : 'var(--red)'}">${r.yday ? `${up ? '▲' : '▼'} ${Math.abs(pct).toFixed(1)}%` : '—'}</div>
+    </div>`;
+  }).join('');
+}
+
+// ranking + ค้นหา (กรองฝั่ง client จากข้อมูลรอบล่าสุด · หลายคำ = ต้องเจอทุกคำ)
+let lastShopsRows = [];
+const rankQEl = document.getElementById('rankQ');
+const rankQClr = document.getElementById('rankQClr');
+function renderShopsTable(rows) {
+  lastShopsRows = rows || [];
+  const pp = parseInt(rankPPEl.value, 10);
+  const body = document.getElementById('shopsBody');
+  const terms = rankQEl.value.toLowerCase().split(/\s+/).filter(Boolean);
+  rankQClr.style.visibility = rankQEl.value ? 'visible' : 'hidden';
+  let ranked = lastShopsRows.map((r, i) => ({ ...r, _rank: i + 1 }));
+  if (terms.length) ranked = ranked.filter(r => {
+    const hay = `${r.shop_code} ${r.shop_name} ${r.shop_type || ''} ${r.shop_type_name || ''}`.toLowerCase();
+    return terms.every(t => hay.includes(t));
+  });
+  const slice = ranked.slice(0, pp);
+  document.getElementById('rankCount').textContent = terms.length
+    ? `พบ ${fmtInt(ranked.length)} สาขา` + (ranked.length > slice.length ? ` · แสดง ${fmtInt(slice.length)} แรก` : '') : '';
+  if (terms.length && !slice.length) {
+    body.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted)">ไม่พบสาขาที่ตรงกับคำค้น</td></tr>'; return;
+  }
+  body.innerHTML = slice.map(r => `
+    <tr>
+      <td>${r._rank}</td><td>${esc(r.shop_code)}</td><td>${esc(r.shop_name)}</td>
+      <td>${r.shop_type_name ? `<span class="type-badge">${esc(r.shop_type_name)}</span>` : '—'}</td>
+      <td class="num">${fmtBaht(r.today)}</td><td class="num">${fmtInt(r.bills)}</td><td class="num">${fmtBaht(r.avg)}</td>
+      <td class="num" style="color:${r.diff_pct == null ? 'inherit' : (r.diff_pct >= 0 ? 'var(--green)' : 'var(--red)')}">${fmtPct(r.diff_pct)}</td>
+      <td>${esc(r.last_bill || '—')}</td>
+    </tr>`).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--muted)">ยังไม่มีข้อมูล</td></tr>';
+}
+
+// ─────────────────────────── 💰 TOAST ยอดเข้ารายสาขา ───────────────────────────
+//  ยอดเข้า = ยอดรายสาขาที่เพิ่มจาก snapshot รอบก่อน (นับบิลที่สาขาส่งขึ้นมาช้าด้วย)
+//  เปิดหน้าครั้งแรก/เปลี่ยนวัน/เปลี่ยนประเภทร้าน/แท็บพักเกิน 5 นาที = ตั้งต้นใหม่ ยังไม่เด้ง
+const TOAST_MAX_GAP_MIN = 5;
+function shortShopName(name, maxlen = 22) {
+  let s = String(name || '').replace(/^(?:\(?[A-Za-z0-9]+\)?\s*-\s*)+/, '').split(/\s+/).join(' ').trim();
+  if (s.length > maxlen) s = s.slice(0, maxlen - 1).trimEnd() + '…';
+  return s;
+}
+function showToast(html) {
+  const box = document.getElementById('toastBox');
+  const el = document.createElement('div');
+  el.className = 'sm-toast';
+  el.innerHTML = `<span class="ic">💰</span><span class="tx">${html}</span><button class="x" aria-label="ปิด">✕</button>`;
+  const close = () => { el.classList.add('out'); setTimeout(() => el.remove(), 300); };
+  el.querySelector('.x').addEventListener('click', close);
+  box.prepend(el);
+  while (box.children.length > 3) box.lastElementChild.remove();
+  setTimeout(close, 10000);
+}
+function maybeToast(d) {
+  try {
+    const cut = d.compare && d.compare.cut_hhmm;
+    if (!d.is_today || !cut || cut >= 2400) { toastState = null; return; }
+    const snapM = Math.floor(cut / 100) * 60 + (cut % 100);
+    const key = `${d.date}|${typeEl.value}`;
+    const cur = new Map((d.shops_ranking || []).map(r => [r.shop_code, r]));
+    const prev = toastState;
+    toastState = { key, snapM, cur };
+    if (!prev || prev.key !== key) return;
+    if (snapM === prev.snapM) { toastState = prev; return; }
+    const gap = snapM - prev.snapM;
+    if (gap < 0 || gap > TOAST_MAX_GAP_MIN) return;
+    if (!autoEl.checked || !toastOnEl.checked) return;
+    const inc = [];
+    for (const [code, r] of cur) {
+      const before = prev.cur.has(code) ? Number(prev.cur.get(code).today || 0) : 0;
+      const delta = Number(r.today || 0) - before;
+      if (delta >= 0.5) inc.push({ code, name: r.shop_name, delta });
+    }
+    if (!inc.length) return;
+    inc.sort((x, y) => y.delta - x.delta);
+    const total = inc.reduce((a, x) => a + x.delta, 0);
+    const parts = inc.slice(0, 2).map(x => `${esc(x.code)} ${esc(shortShopName(x.name))} +${fmtBaht(x.delta)}`);
+    let html = `<b>+${fmtBaht(total)} ใน ${gap} นาที</b> · ` + parts.join(' · ');
+    if (inc.length > 2) html += ` · อีก ${inc.length - 2} สาขา`;
+    showToast(html);
+  } catch (e) { /* toast เป็นส่วนเสริม */ }
+}
+
+// ─────────────────────────── AUTO REFRESH + EVENTS ───────────────────────────
+function setupAutoRefresh() {
+  if (autoTimer) clearInterval(autoTimer);
+  if (autoEl.checked && dateEl.value === todayStr()) autoTimer = setInterval(() => loadSummary(true), SM_REFRESH_SEC * 1000);
+}
+dateEl.addEventListener('change', async () => { await loadTypeOptions(); await loadSummary(); setupAutoRefresh(); });
+typeEl.addEventListener('change', () => loadSummary());
+topNEl.addEventListener('change', () => loadSummary());
+rankPPEl.addEventListener('change', () => renderShopsTable(lastShopsRows));
+rankQEl.addEventListener('input', () => renderShopsTable(lastShopsRows));
+rankQEl.addEventListener('keydown', (e) => { if (e.key === 'Escape') { rankQEl.value = ''; renderShopsTable(lastShopsRows); } });
+rankQClr.addEventListener('click', () => { rankQEl.value = ''; renderShopsTable(lastShopsRows); rankQEl.focus(); });
+autoEl.addEventListener('change', setupAutoRefresh);
+if (LS('abp_toast_on') === '0') toastOnEl.checked = false;
+toastOnEl.addEventListener('change', () => LS('abp_toast_on', toastOnEl.checked ? '1' : '0'));
+document.getElementById('btnRefresh').addEventListener('click', () => loadSummary());
+document.addEventListener('visibilitychange', () => { if (!document.hidden && dateEl.value === todayStr()) loadSummary(true); });
+
+(async function init() {
+  await loadTypeOptions();
+  await loadSummary();
+  setupAutoRefresh();
+})();
+</script>
+</body>
+</html>

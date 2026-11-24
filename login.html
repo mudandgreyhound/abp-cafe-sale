@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ABP Sale Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Playfair+Display:wght@700;800&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand:#9E2235; --brand-dk:#7E1A2A; --cream:#FBF7F2; --ink:#1F1A17;
+    --muted:#9a918a; --border:#e9e1d8;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px;
+    background:var(--cream); font-family:'Sarabun','Nunito',sans-serif; color:var(--ink);
+  }
+  .card{
+    background:#fff; border-radius:20px; padding:40px 36px; width:360px; max-width:100%;
+    box-shadow:0 8px 32px rgba(0,0,0,.08); border-top:5px solid var(--brand);
+  }
+  .brand{ text-align:center; font-family:'Playfair Display',serif; font-size:28px; font-weight:800;
+          color:var(--brand); letter-spacing:.5px; }
+  .brand-sub{ text-align:center; font-family:'Nunito',sans-serif; font-size:11px; font-weight:800;
+              letter-spacing:3px; color:var(--muted); text-transform:uppercase; margin:2px 0 22px; }
+  h1{ text-align:center; font-family:'Nunito',sans-serif; font-size:20px; font-weight:900; margin:0 0 18px; }
+  label{ display:block; font-family:'Nunito',sans-serif; font-size:11px; font-weight:800;
+         letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin:16px 0 6px; }
+  input{
+    width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:12px;
+    background:var(--cream); font-family:'Sarabun',sans-serif; font-size:14px; color:var(--ink);
+  }
+  input:focus{ outline:none; border-color:var(--brand); }
+  button{
+    width:100%; margin-top:24px; padding:12px; border:none; border-radius:25px;
+    background:var(--brand); color:#fff; font-family:'Nunito',sans-serif; font-weight:800;
+    font-size:14px; letter-spacing:.5px; cursor:pointer; box-shadow:0 4px 12px rgba(158,34,53,.25);
+    transition:transform .15s, background .15s;
+  }
+  button:hover{ background:var(--brand-dk); transform:translateY(-1px); }
+  button:disabled{ opacity:.6; cursor:default; transform:none; }
+  #err{
+    margin-top:14px; padding:10px 14px; background:#FBEEF0; border:1.5px solid #EFC9D0;
+    border-radius:10px; color:var(--brand-dk); font-size:13px; display:none;
+  }
+</style>
+</head>
+<body>
+  <form class="card" id="loginForm">
+    <div class="brand">Au Bon Pain</div>
+    <div class="brand-sub">Cafe · Sale Monitor</div>
+    <h1>📈 เข้าสู่ระบบ</h1>
+    <label for="u">Username</label>
+    <input id="u" name="username" autocomplete="username" required>
+    <label for="p">Password</label>
+    <input id="p" name="password" type="password" autocomplete="current-password" required>
+    <button id="btn" type="submit">เข้าสู่ระบบ</button>
+    <div id="err"></div>
+  </form>
+
+<script>
+  const API_BASE = "https://abp-cafe-sale.mobile1234.site";
+
+  const form = document.getElementById('loginForm');
+  const btn  = document.getElementById('btn');
+  const err  = document.getElementById('err');
+
+  // มี token ที่ยังไม่หมดอายุอยู่แล้ว → ข้ามไปหน้า dashboard เลย
+  try {
+    const tok = localStorage.getItem('abp_token');
+    const exp = parseInt(localStorage.getItem('abp_token_exp') || '0', 10);
+    if (tok && Date.now() < exp) window.location.href = 'index.html';
+  } catch (e) {}
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    err.style.display = 'none';
+    btn.disabled = true; btn.textContent = 'กำลังเข้าสู่ระบบ...';
+    try {
+      const res = await fetch(`${API_BASE}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: document.getElementById('u').value.trim(),
+          password: document.getElementById('p').value,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || 'เข้าสู่ระบบไม่สำเร็จ');
+      }
+      const data = await res.json();
+      localStorage.setItem('abp_token', data.access_token);
+      localStorage.setItem('abp_token_exp', String(data.expires_at || (Date.now() + 12 * 3600 * 1000)));
+      localStorage.setItem('abp_full_name', data.full_name || '');
+      window.location.href = 'index.html';
+    } catch (e2) {
+      err.textContent = (e2 && e2.message === 'Failed to fetch')
+        ? 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — ลองใหม่อีกครั้ง' : e2.message;
+      err.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ';
+    }
+  });
+</script>
+</body>
+</html>
