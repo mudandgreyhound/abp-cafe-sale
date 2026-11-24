@@ -84,6 +84,20 @@
   #loadOverlay{ position:fixed; inset:0; background:rgba(247,246,243,.7); display:flex; align-items:center; justify-content:center;
     font-family:'Nunito',sans-serif; font-weight:800; color:var(--charcoal); z-index:50; }
   #errBox{ background:var(--terra-lt); border:1.5px solid #F4C6B7; border-radius:14px; color:#B23F1F; padding:12px 16px; margin-bottom:16px; font-size:13px; }
+  .ctl-bar{ display:grid; grid-template-columns:2fr 1fr; gap:16px; margin:2px 0 16px; }
+  @media (max-width:640px){ .ctl-bar{ grid-template-columns:1fr; gap:10px; } }
+  .ctl label{ display:block; font-size:14px; color:var(--ink); margin-bottom:6px; }
+  .ctl select, .stepper{ width:100%; height:48px; border:none; border-radius:10px; background:#eef0f3;
+    font-family:'Sarabun',sans-serif; font-size:16px; color:var(--ink); }
+  .ctl select{ padding:0 14px; cursor:pointer; }
+  .ctl select:focus, .stepper:focus-within{ outline:2px solid var(--brand); }
+  .stepper{ display:flex; align-items:center; padding-left:14px; }
+  .stepper input{ flex:1; min-width:0; border:none; outline:none; background:transparent; font-size:16px;
+    font-family:'Sarabun',sans-serif; color:var(--ink); -moz-appearance:textfield; }
+  .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+  .stepper button{ width:44px; height:100%; border:none; background:transparent; font-size:20px; font-weight:700;
+    color:var(--charcoal); cursor:pointer; border-radius:10px; }
+  .stepper button:hover{ background:#e2e5ea; color:var(--brand-dk); }
   .note{ background:#fff; border:1px dashed var(--border); border-radius:12px; padding:10px 14px; font-size:12.5px; color:var(--label); line-height:1.6; }
 </style>
 </head>
@@ -108,16 +122,6 @@
     <a href="frequency.html" class="sb-link active">🔁 ความถี่ลูกค้า</a>
   </div>
   <div class="sb-section field">
-    <label for="fqPeriod">ช่วงวิเคราะห์</label>
-    <select id="fqPeriod">
-      <option value="ytd">ตั้งแต่ 1 ม.ค.</option><option value="180">180 วันล่าสุด</option><option value="90">90 วันล่าสุด</option>
-    </select>
-  </div>
-  <div class="sb-section field">
-    <label for="fqReg">ขาประจำ = มา ≥ (ครั้ง)</label>
-    <input type="number" id="fqReg" min="2" max="50" value="6">
-  </div>
-  <div class="sb-section field">
     <label for="fqType">ประเภทร้าน</label>
     <select id="fqType"><option value="">ทุกประเภทร้าน</option></select>
   </div>
@@ -135,6 +139,22 @@
 <main>
   <div class="page-title">🔁 ความถี่ลูกค้า (Member)</div>
   <div class="page-sub" id="pageSub">—</div>
+  <div class="ctl-bar">
+    <div class="ctl">
+      <label for="fqPeriod">ช่วงวิเคราะห์</label>
+      <select id="fqPeriod">
+        <option value="ytd">ตั้งแต่ 1 ม.ค.</option><option value="180">180 วันล่าสุด</option><option value="90">90 วันล่าสุด</option>
+      </select>
+    </div>
+    <div class="ctl">
+      <label for="fqReg">ขาประจำ = มา ≥ (ครั้ง)</label>
+      <div class="stepper">
+        <input type="number" id="fqReg" min="2" max="50" value="6" inputmode="numeric">
+        <button type="button" id="regMinus" aria-label="ลด">−</button>
+        <button type="button" id="regPlus" aria-label="เพิ่ม">+</button>
+      </div>
+    </div>
+  </div>
   <div id="errBox" class="hidden"></div>
 
   <div id="content" class="hidden">
@@ -422,7 +442,15 @@ $('odCsv').addEventListener('click', () => {
 
 // ── ตัวกรอง ──
 $('fqPeriod').addEventListener('change', () => { regTouched = false; load(); });
-$('fqReg').addEventListener('change', () => { regTouched = true; load(); });
+let regTimer = null;
+function setReg(v, now = false) {
+  const n = Math.max(2, Math.min(50, parseInt(v, 10) || 2));
+  $('fqReg').value = n; regTouched = true;
+  clearTimeout(regTimer); regTimer = setTimeout(load, now ? 0 : 450);
+}
+$('fqReg').addEventListener('change', () => setReg($('fqReg').value, true));
+$('regMinus').addEventListener('click', () => setReg((parseInt($('fqReg').value, 10) || 2) - 1));
+$('regPlus').addEventListener('click', () => setReg((parseInt($('fqReg').value, 10) || 2) + 1));
 $('fqType').addEventListener('change', () => { $('fqShop').value = ''; load(); });
 $('fqShop').addEventListener('change', load);
 $('btnRefresh').addEventListener('click', load);
