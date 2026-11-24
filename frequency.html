@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ABP · ความถี่ลูกค้า</title>
+<link rel="icon" type="image/png" href="assets/abp-logo-sm.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --brand:#E3A21A; --brand-dk:#A8740A; --brand-lt:#FDF4DE; --brand-ln:#F1D697;
+    --charcoal:#4B5057; --terra:#D9532F; --terra-lt:#FDEDE7;
+    --cream:#F7F6F3; --ink:#2B2E33; --muted:#8f949a; --label:#7a7f86;
+    --border:#e4e2dc; --line:#eeece7; --green:#16a34a; --red:#dc2626;
+  }
+  *{box-sizing:border-box}
+  body{ margin:0; background:var(--cream); color:var(--ink); font-family:'Sarabun','Nunito',sans-serif; }
+  .hidden{display:none !important}
+  .sidebar{ position:fixed; top:0; left:0; bottom:0; width:230px; background:#fff; border-right:2px solid var(--line);
+    padding:22px 0 16px; overflow-y:auto; display:flex; flex-direction:column; z-index:10; }
+  .sb-logo{ padding:0 20px 16px; margin-bottom:10px; border-bottom:1px solid var(--line); text-align:center; }
+  .sb-logo-img{ display:block; width:100%; max-width:180px; height:auto; margin:0 auto; }
+  .sb-sub2{ font-family:'Nunito',sans-serif; font-weight:800; font-size:10px; letter-spacing:2px; color:var(--charcoal); margin-top:8px; text-transform:uppercase; }
+  .sb-section{ padding:0 20px; margin-bottom:16px; }
+  .sb-label{ font-family:'Nunito',sans-serif; font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:7px; }
+  .sb-link{ display:flex; align-items:center; gap:9px; padding:10px 12px; margin:2px -12px; border-radius:10px; color:#374151;
+    text-decoration:none; font-weight:700; font-family:'Nunito',sans-serif; font-size:13px; }
+  .sb-link:hover{ background:var(--brand-lt); }
+  .sb-link.active{ color:#fff; background:var(--charcoal); }
+  .field{ display:flex; flex-direction:column; gap:5px; }
+  .field label{ font-family:'Nunito',sans-serif; font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--muted); }
+  .field select, .field input{ padding:8px 10px; border:1.5px solid var(--border); border-radius:10px; width:100%;
+    background:var(--cream); font-family:'Sarabun',sans-serif; font-size:13px; color:var(--ink); }
+  .sb-footer{ margin-top:auto; padding:14px 20px 0; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:8px; }
+  .chip-btn{ border:none; border-radius:25px; padding:9px 18px; font-family:'Nunito',sans-serif; font-weight:800; font-size:12px; cursor:pointer; }
+  .chip-btn.ghost{ background:#fff; color:var(--muted); border:1.5px solid var(--border); }
+  .chip-btn.dark{ background:var(--charcoal); color:#fff; }
+  .who{ font-size:12px; color:var(--muted); }
+  main{ margin-left:230px; padding:22px 28px 60px; max-width:1500px; }
+  .page-title{ font-family:'Nunito',sans-serif; font-weight:900; font-size:20px; color:var(--charcoal); margin-bottom:4px; }
+  .page-sub{ color:var(--muted); font-size:13.5px; margin-bottom:14px; }
+  .mobile-topbar{ display:none; }
+  @media (max-width:860px){
+    .mobile-topbar{ display:flex; align-items:center; gap:12px; background:#fff; border-bottom:2px solid var(--line); padding:12px 16px; position:sticky; top:0; z-index:25; }
+    .mobile-topbar .hamburger-btn{ background:none; border:none; font-size:22px; cursor:pointer; color:var(--ink); padding:2px 6px; }
+    .mobile-topbar .mt-title{ font-family:'Nunito',sans-serif; font-weight:900; font-size:15px; }
+    .sb-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:30; opacity:0; pointer-events:none; transition:opacity .2s; }
+    .sb-overlay.open{ opacity:1; pointer-events:auto; }
+    .sidebar{ width:260px; max-width:82vw; transform:translateX(-100%); transition:transform .25s ease; box-shadow:2px 0 24px rgba(0,0,0,.15); z-index:35; }
+    .sidebar.open{ transform:translateX(0); }
+    main{ margin-left:0; padding:16px 16px 48px; }
+  }
+  .kpi-row{ display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px 18px; box-shadow:0 1px 3px rgba(0,0,0,.04); flex:1; min-width:165px; }
+  .card .lb{ color:var(--label); font-size:13.5px; font-weight:700; font-family:'Nunito',sans-serif; }
+  .card .val{ font-size:28px; font-weight:800; font-family:'Nunito',sans-serif; color:var(--ink); line-height:1.3; }
+  .card .sub{ font-size:13px; color:var(--muted); }
+  .card.warn .val{ color:var(--terra); }
+  hr.div{ border:none; border-top:1px solid #ebe8e2; margin:22px 0; }
+  .section-title{ font-weight:800; color:var(--charcoal); font-size:18px; margin-bottom:2px; font-family:'Nunito',sans-serif; }
+  .section-sub{ font-size:12.5px; color:var(--muted); margin-bottom:10px; }
+  .chart-box{ background:#fff; border-radius:16px; padding:16px; box-shadow:0 2px 20px rgba(0,0,0,.05); min-width:0; }
+  .two-col{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:860px){ .two-col{ grid-template-columns:minmax(0,1fr); } }
+  .chart-wrap{ position:relative; height:320px; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  thead th{ background:var(--brand-lt); color:var(--charcoal); font-family:'Nunito',sans-serif; font-size:11px; font-weight:800;
+    text-transform:uppercase; letter-spacing:.5px; border-bottom:2px solid var(--brand-ln); padding:9px 10px; text-align:left;
+    white-space:nowrap; position:sticky; top:0; z-index:1; }
+  thead th.sortable{ cursor:pointer; user-select:none; }
+  thead th.sortable:hover{ color:var(--brand-dk); }
+  tbody td{ background:#fff; color:#374151; border-bottom:1px solid #f3f1ec; padding:8px 10px; }
+  tbody tr:hover td{ background:#fffaf0; }
+  .tbl-wrap{ background:#fff; border-radius:14px; overflow:auto; box-shadow:0 1px 8px rgba(0,0,0,.05); max-height:620px; }
+  .num{ text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .bar-cell{ display:flex; align-items:center; gap:6px; min-width:90px; }
+  .bar-cell .track{ flex:1; height:8px; background:#f1eee8; border-radius:4px; overflow:hidden; }
+  .bar-cell .fill{ height:100%; background:var(--brand); }
+  .tools{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+  .tools input, .tools select{ padding:7px 10px; border:1.5px solid var(--border); border-radius:10px; background:var(--cream); font-family:'Sarabun',sans-serif; font-size:13px; }
+  .caption{ font-size:12.5px; color:var(--muted); margin-top:6px; }
+  #loadOverlay{ position:fixed; inset:0; background:rgba(247,246,243,.7); display:flex; align-items:center; justify-content:center;
+    font-family:'Nunito',sans-serif; font-weight:800; color:var(--charcoal); z-index:50; }
+  #errBox{ background:var(--terra-lt); border:1.5px solid #F4C6B7; border-radius:14px; color:#B23F1F; padding:12px 16px; margin-bottom:16px; font-size:13px; }
+  .note{ background:#fff; border:1px dashed var(--border); border-radius:12px; padding:10px 14px; font-size:12.5px; color:var(--label); line-height:1.6; }
+</style>
+</head>
+<body>
+<div id="loadOverlay">กำลังวิเคราะห์ข้อมูล member...</div>
+
+<div class="mobile-topbar">
+  <button class="hamburger-btn" id="btnMobileMenu" aria-label="เมนู">☰</button>
+  <img src="assets/abp-logo-sm.png" alt="ABP" width="38" height="22" style="height:22px;width:auto">
+  <span class="mt-title">ความถี่ลูกค้า</span>
+</div>
+<div class="sb-overlay" id="sbOverlay"></div>
+
+<aside class="sidebar">
+  <div class="sb-logo">
+    <img class="sb-logo-img" src="assets/abp-logo.png" alt="Au Bon Pain | The Bakery Café" width="260" height="62">
+    <div class="sb-sub2">📈 Sale Monitor</div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">หน้า</div>
+    <a href="index.html" class="sb-link">📈 Sale Monitor</a>
+    <a href="frequency.html" class="sb-link active">🔁 ความถี่ลูกค้า</a>
+  </div>
+  <div class="sb-section field">
+    <label for="fqPeriod">ช่วงวิเคราะห์</label>
+    <select id="fqPeriod">
+      <option value="ytd">ตั้งแต่ 1 ม.ค.</option><option value="180">180 วันล่าสุด</option><option value="90">90 วันล่าสุด</option>
+    </select>
+  </div>
+  <div class="sb-section field">
+    <label for="fqReg">ขาประจำ = มา ≥ (ครั้ง)</label>
+    <input type="number" id="fqReg" min="2" max="50" value="6">
+  </div>
+  <div class="sb-section field">
+    <label for="fqType">ประเภทร้าน</label>
+    <select id="fqType"><option value="">ทุกประเภทร้าน</option></select>
+  </div>
+  <div class="sb-section field">
+    <label for="fqShop">สาขา</label>
+    <select id="fqShop"><option value="">ทุกสาขา</option></select>
+  </div>
+  <div class="sb-footer">
+    <span class="who" id="whoLabel"></span>
+    <button class="chip-btn ghost" id="btnRefresh">🔄 REFRESH</button>
+    <button class="chip-btn ghost" id="btnLogout">ออกจากระบบ</button>
+  </div>
+</aside>
+
+<main>
+  <div class="page-title">🔁 ความถี่ลูกค้า (Member)</div>
+  <div class="page-sub" id="pageSub">—</div>
+  <div id="errBox" class="hidden"></div>
+
+  <div id="content" class="hidden">
+    <div class="kpi-row" id="kpiRow"></div>
+
+    <div class="two-col">
+      <div class="chart-box">
+        <div class="section-title">📊 มากี่ครั้ง</div>
+        <div class="section-sub">สัดส่วนคน vs สัดส่วนยอดขาย member</div>
+        <div class="chart-wrap"><canvas id="chBands"></canvas></div>
+        <div class="caption" id="bandsCap"></div>
+      </div>
+      <div class="chart-box">
+        <div class="section-title">📈 รายเดือน</div>
+        <div class="section-sub">member ที่มา · member ใหม่ · ใหม่ที่กลับมาใน 30 วัน (%)</div>
+        <div class="chart-wrap"><canvas id="chMonthly"></canvas></div>
+      </div>
+    </div>
+
+    <hr class="div">
+
+    <div class="chart-box">
+      <div class="section-title">🏪 เทียบรายสาขา</div>
+      <div class="section-sub">สาขาที่มีการมาของ member ≥ 30 ครั้งในช่วงนี้ · กดหัวคอลัมน์เพื่อเรียง</div>
+      <div class="tools"><input type="text" id="shopQ" placeholder="🔍 ค้นหาสาขา / ประเภท" autocomplete="off"><span class="caption" id="shopCount"></span></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr id="shopHead"></tr></thead>
+          <tbody id="shopBody"></tbody>
+        </table>
+      </div>
+      <div class="caption">🔒 = สาขาที่ปิดแล้ว · มาซ้ำ % = member ของสาขานี้ที่มาสาขานี้ ≥2 ครั้ง ·
+        % บิลเป็น member = สัดส่วนบิลที่มีรหัสสมาชิก (ต่ำ = ร้านยังเก็บ member ได้น้อย) ·
+        มาที่สาขานี้ % = เฉลี่ยแล้ว member ของสาขานี้มาที่สาขานี้กี่ % ของครั้งทั้งหมด</div>
+    </div>
+
+    <hr class="div">
+
+    <div class="two-col">
+      <div class="chart-box">
+        <div class="section-title">🏅 ระดับสมาชิก vs ความถี่</div>
+        <div class="section-sub">ครั้งต่อคน (เฉลี่ย) · ระดับที่มี member ≥ 10 คน</div>
+        <div class="chart-wrap"><canvas id="chTier"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <div class="section-title">📅 วันที่ member มา</div>
+        <div class="section-sub">ขาประจำ vs member ทั่วไป (% ของครั้ง)</div>
+        <div class="chart-wrap"><canvas id="chWeek"></canvas></div>
+      </div>
+    </div>
+
+    <div id="closedSection" class="hidden">
+      <hr class="div">
+      <div class="chart-box">
+        <div class="section-title">🔒 สาขาที่ปิด — member ไปต่อที่สาขาอื่นไหม</div>
+        <div class="tbl-wrap" style="max-height:none">
+          <table><thead><tr><th>สาขาที่ปิด</th><th>บิลสุดท้าย</th><th class="num">member ที่สาขานี้เป็นหลัก</th>
+            <th class="num">ไปสาขาอื่นแล้ว</th><th class="num">ไปต่อ %</th><th>ไปที่ไหน (คน)</th></tr></thead>
+            <tbody id="closedBody"></tbody></table>
+        </div>
+        <div class="caption">member ที่ยังไม่ไปสาขาอื่น = กลุ่มที่ควรชวนไปสาขาใกล้ ๆ ก่อนหายไป</div>
+      </div>
+    </div>
+
+    <hr class="div">
+
+    <div class="chart-box">
+      <div class="section-title">📞 ขาประจำที่หายไป</div>
+      <div class="section-sub">มา ≥ เกณฑ์ขาประจำ แต่ไม่มามาแล้วเกิน 2 เท่าของรอบปกติตัวเอง (อย่างน้อย 30 วัน) · เรียงจากยอดมากไปน้อย</div>
+      <div class="tools">
+        <select id="odHome"></select>
+        <span id="odInfo" style="font-weight:700"></span>
+        <button class="chip-btn dark" id="odCsv">📥 ดาวน์โหลดรายชื่อ (CSV)</button>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>#</th><th>รหัสสมาชิก</th><th>ระดับ</th><th>สาขาหลัก</th><th class="num">ครั้งที่มา</th>
+          <th class="num">รอบปกติ (วัน)</th><th class="num">ไม่มาแล้ว (วัน)</th><th>มาล่าสุด</th><th class="num">ยอดรวม ฿</th><th class="num">ยอด/ครั้ง ฿</th></tr></thead>
+          <tbody id="odBody"></tbody></table>
+      </div>
+      <div class="caption" id="odCap">รายชื่อเป็นรหัสสมาชิกเท่านั้น (ไม่มีชื่อ/เบอร์) — ค้นรายละเอียดต่อใน CM POS</div>
+    </div>
+
+    <hr class="div">
+    <div class="note">
+      <b>นิยาม</b> · ดูได้เฉพาะ Member (บิลที่มีรหัสสมาชิก) — ลูกค้าทั่วไปไม่มีรหัสให้ตามว่ากลับมาไหม ·
+      1 ครั้ง = member × สาขา × วัน (หลายบิลในวันเดียวกันนับ 1 ครั้ง) · ยอด = ยอดขายรวม VAT แบบหน้า Sale Monitor ·
+      member ใหม่ = ไม่เคยมาก่อนในข้อมูลตั้งแต่ <span id="dataStart">—</span> · ข้อมูลถึงเมื่อวาน (อัปเดตทุกคืน 02:40)
+    </div>
+  </div>
+</main>
+
+<script>
+const API_BASE = "https://abp-cafe-sale.mobile1234.site";
+const LS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } };
+const token = LS('abp_token');
+const tokenExp = parseInt(LS('abp_token_exp') || '0', 10);
+const AUTH_OK = !!token && Date.now() < tokenExp;
+if (!AUTH_OK) window.location.replace('login.html');
+document.getElementById('whoLabel').textContent = LS('abp_full_name') || '';
+function logout() { LS('abp_token', null); LS('abp_token_exp', null); LS('abp_full_name', null); window.location.href = 'login.html'; }
+document.getElementById('btnLogout').addEventListener('click', logout);
+const sidebarEl = document.querySelector('.sidebar'), sbOverlay = document.getElementById('sbOverlay');
+document.getElementById('btnMobileMenu').addEventListener('click', () => { sidebarEl.classList.add('open'); sbOverlay.classList.add('open'); });
+sbOverlay.addEventListener('click', () => { sidebarEl.classList.remove('open'); sbOverlay.classList.remove('open'); });
+
+async function apiGet(path) {
+  const res = await fetch(`${API_BASE}${path}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (res.status === 401) { logout(); return null; }
+  if (!res.ok) { const b = await res.json().catch(() => ({})); throw new Error(b.detail || `โหลดข้อมูลไม่สำเร็จ (${res.status})`); }
+  return res.json();
+}
+
+const $ = (id) => document.getElementById(id);
+const fmtInt = (n) => Math.round(n || 0).toLocaleString('en-US');
+const fmtBaht = (n) => '฿' + Math.round(n || 0).toLocaleString('en-US');
+const fmt1 = (n) => (n == null ? '—' : Number(n).toFixed(1));
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const thDate = (s) => { if (!s) return '—'; const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; };
+const charts = {};
+let DATA = null, regTouched = false;
+
+function chart(id, cfg) { if (charts[id]) charts[id].destroy(); charts[id] = new Chart($(id), cfg); }
+
+async function load() {
+  $('loadOverlay').classList.remove('hidden');
+  try {
+    const p = new URLSearchParams({ period: $('fqPeriod').value, stype: $('fqType').value, shop: $('fqShop').value });
+    if (regTouched) p.set('reg_min', $('fqReg').value);
+    const d = await apiGet(`/api/frequency?${p}`);
+    if (!d) return;
+    DATA = d;
+    $('errBox').classList.add('hidden');
+    fillFilters(d.meta);
+    if (d.empty) { $('content').classList.add('hidden'); $('pageSub').textContent = 'ไม่มี member ในช่วง/สาขาที่เลือก'; return; }
+    $('content').classList.remove('hidden');
+    render(d);
+  } catch (e) {
+    $('errBox').textContent = e.message === 'Failed to fetch' ? 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — ลองใหม่อีกครั้ง' : e.message;
+    $('errBox').classList.remove('hidden');
+  } finally { $('loadOverlay').classList.add('hidden'); }
+}
+
+function fillFilters(meta) {
+  if (!meta) return;
+  if (!regTouched) $('fqReg').value = meta.reg_min;
+  const tSel = $('fqType'), cur = tSel.value;
+  tSel.innerHTML = '<option value="">ทุกประเภทร้าน</option>' + meta.type_options.map(t => `<option value="${esc(t.code)}">${esc(t.name)} (${t.shops})</option>`).join('');
+  tSel.value = meta.type_options.some(t => t.code === cur) ? cur : '';
+  const sSel = $('fqShop'), curS = sSel.value;
+  const shops = meta.shop_options.filter(s => !tSel.value || s.type === tSel.value);
+  sSel.innerHTML = '<option value="">ทุกสาขา</option>' + shops.map(s => `<option value="${esc(s.code)}">${s.closed ? '🔒 ' : ''}${esc(s.name)} (${fmtInt(s.members)})</option>`).join('');
+  sSel.value = shops.some(s => s.code === curS) ? curS : '';
+  $('dataStart').textContent = thDate(meta.data_start);
+  const per = { ytd: 'ตั้งแต่ 1 ม.ค.', '180': '180 วันล่าสุด', '90': '90 วันล่าสุด' }[meta.period];
+  const scope = sSel.value ? sSel.options[sSel.selectedIndex].text.replace(/\s\(\d[\d,]*\)$/, '') : (tSel.value ? tSel.options[tSel.selectedIndex].text.replace(/\s\(\d+\)$/, '') : 'ทุกสาขา');
+  $('pageSub').textContent = `📅 ${thDate(meta.start)} – ${thDate(meta.end)} (${per}) · 🏷️ ${scope} · ข้อมูลถึงเมื่อวาน (อัปเดตทุกคืน)`;
+}
+
+function render(d) {
+  const k = d.kpis, reg = d.meta.reg_min;
+  const card = (lb, val, sub, cls = '') => `<div class="card ${cls}"><div class="lb">${lb}</div><div class="val">${val}</div><div class="sub">${sub}</div></div>`;
+  $('kpiRow').innerHTML =
+    card('Member ที่มา', fmtInt(k.members), `${fmtInt(k.visits)} ครั้ง · ${k.visits_per_member.toFixed(1)} ครั้ง/คน`) +
+    card('มาซ้ำ (≥2 ครั้ง)', `${k.repeat_pct.toFixed(0)}%`, `มาครั้งเดียว ${fmtInt(k.once)} คน`) +
+    card(`ขาประจำ (≥${reg} ครั้ง)`, fmtInt(k.regulars), `${k.regular_pct.toFixed(0)}% ของคน · ${k.regular_spend_pct.toFixed(0)}% ของยอด`) +
+    card('รอบการมา (ค่ากลาง)', k.median_gap == null ? '—' : `${k.median_gap} วัน`, 'ระหว่างครั้งของคนที่มาซ้ำ') +
+    card('ใหม่ → กลับมาใน 30 วัน', k.ret30 == null ? '—' : `${k.ret30.toFixed(0)}%`, `จาก member ใหม่ ${fmtInt(k.new_members)} คน`) +
+    card('ขาประจำที่หายไป', fmtInt(k.overdue), `ยอดในช่วงนี้ ${fmtBaht(k.overdue_spend)}`, 'warn');
+
+  // มากี่ครั้ง
+  chart('chBands', { type: 'bar',
+    data: { labels: d.bands.map(b => b.label), datasets: [
+      { label: '% ของ member', data: d.bands.map(b => b.members_pct), backgroundColor: '#cfd4dc' },
+      { label: '% ของยอดขาย', data: d.bands.map(b => b.spend_pct), backgroundColor: '#E3A21A' } ] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' },
+      tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y.toFixed(1)}%` } } },
+      scales: { y: { ticks: { callback: v => v + '%' }, grid: { color: '#f1eee8' } } } } });
+  $('bandsCap').textContent = 'ยอด/ครั้ง: ' + d.bands.map(b => `${b.label} ${fmtBaht(b.per_visit)}`).join(' · ');
+
+  // รายเดือน
+  const m = d.monthly;
+  chart('chMonthly', { type: 'bar',
+    data: { labels: m.map(r => r.month), datasets: [
+      { label: 'member ที่มา', data: m.map(r => r.active), backgroundColor: '#EDE3C8', yAxisID: 'y', order: 2 },
+      { label: 'member ใหม่', data: m.map(r => r.new), backgroundColor: '#E3A21A', yAxisID: 'y', order: 2 },
+      { type: 'line', label: 'ใหม่ที่กลับมาใน 30 วัน (%)', data: m.map(r => r.ret30), borderColor: '#D9532F', backgroundColor: '#D9532F',
+        yAxisID: 'y2', tension: .3, pointRadius: 3, spanGaps: false, order: 1 } ] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } },
+      scales: { y: { grid: { color: '#f1eee8' } },
+        y2: { position: 'right', min: 0, max: 100, grid: { display: false }, ticks: { callback: v => v + '%', color: '#D9532F' } } } } });
+
+  renderShops();
+  // ระดับสมาชิก
+  chart('chTier', { type: 'bar',
+    data: { labels: d.tiers.map(t => t.tier), datasets: [{ label: 'ครั้งต่อคน (เฉลี่ย)', data: d.tiers.map(t => t.mean), backgroundColor: '#E3A21A' }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: c => ` เฉลี่ย ${c.parsed.y.toFixed(1)} ครั้ง · ${fmtInt(d.tiers[c.dataIndex].members)} คน` } } },
+      scales: { y: { title: { display: true, text: 'ครั้งต่อคน' }, grid: { color: '#f1eee8' } } } } });
+  // วันในสัปดาห์
+  chart('chWeek', { type: 'bar',
+    data: { labels: d.weekday_labels, datasets: [
+      { label: 'ขาประจำ', data: d.weekday.regular, backgroundColor: '#E3A21A' },
+      { label: 'member ทั่วไป', data: d.weekday.normal, backgroundColor: '#cfd4dc' } ] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' },
+      tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y.toFixed(1)}%` } } },
+      scales: { y: { ticks: { callback: v => v + '%' }, grid: { color: '#f1eee8' } } } } });
+  // สาขาที่ปิด
+  if (d.closed && d.closed.length) {
+    $('closedSection').classList.remove('hidden');
+    $('closedBody').innerHTML = d.closed.map(r => `<tr><td>🔒 ${esc(r.name)}</td><td>${esc(r.last_bill)}</td>
+      <td class="num">${fmtInt(r.home_members)}</td><td class="num">${fmtInt(r.moved)}</td><td class="num">${fmt1(r.moved_pct)}%</td>
+      <td>${r.to.map(t => `${esc(t.name)} ${t.members}`).join(', ') || '—'}</td></tr>`).join('');
+  } else $('closedSection').classList.add('hidden');
+  renderOverdueFilter();
+}
+
+// ── ตารางสาขา (เรียงได้ + ค้นหา) ──
+const SHOP_COLS = [
+  ['name', 'สาขา', 'text'], ['type', 'ประเภท', 'text'], ['members', 'Member', 'int'], ['per_member', 'ครั้ง/คน', 'f1'],
+  ['repeat', 'มาซ้ำ %', 'bar'], ['regulars', 'ขาประจำ', 'int'], ['gap', 'รอบ (วัน)', 'int'], ['per_visit', 'ยอด/ครั้ง ฿', 'int'],
+  ['mem_pct', '% บิลเป็น member', 'pct'], ['loyalty', 'มาที่สาขานี้ %', 'pct'], ['overdue', 'ขาประจำหายไป', 'int'],
+];
+let shopSort = { key: 'members', dir: -1 };
+function renderShops() {
+  const reg = DATA.meta.reg_min;
+  $('shopHead').innerHTML = SHOP_COLS.map(([k, h, t]) => `<th class="sortable ${t === 'text' ? '' : 'num'}" data-k="${k}">${k === 'regulars' ? `ขาประจำ (≥${reg})` : h}${shopSort.key === k ? (shopSort.dir < 0 ? ' ▼' : ' ▲') : ''}</th>`).join('');
+  $('shopHead').querySelectorAll('th').forEach(th => th.onclick = () => {
+    const k = th.dataset.k; shopSort = { key: k, dir: shopSort.key === k ? -shopSort.dir : (SHOP_COLS.find(c => c[0] === k)[2] === 'text' ? 1 : -1) }; renderShops();
+  });
+  const q = $('shopQ').value.toLowerCase().split(/\s+/).filter(Boolean);
+  let rows = DATA.shops.filter(r => !q.length || q.every(t => `${r.name} ${r.type} ${r.code}`.toLowerCase().includes(t)));
+  const { key, dir } = shopSort;
+  rows = rows.slice().sort((a, b) => { const x = a[key], y = b[key]; if (x == null) return 1; if (y == null) return -1;
+    return (typeof x === 'string' ? x.localeCompare(y) : x - y) * dir; });
+  $('shopCount').textContent = `${fmtInt(rows.length)} สาขา`;
+  $('shopBody').innerHTML = rows.map(r => '<tr>' + SHOP_COLS.map(([k, , t]) => {
+    const v = r[k];
+    if (k === 'name') return `<td>${r.closed ? '🔒 ' : ''}${esc(v)}</td>`;
+    if (t === 'text') return `<td>${esc(v || '—')}</td>`;
+    if (t === 'bar') return `<td class="num"><div class="bar-cell"><div class="track"><div class="fill" style="width:${Math.min(100, v || 0)}%"></div></div>${v == null ? '—' : v.toFixed(0) + '%'}</div></td>`;
+    if (t === 'pct') return `<td class="num">${v == null ? '—' : v.toFixed(0) + '%'}</td>`;
+    if (t === 'f1') return `<td class="num">${fmt1(v)}</td>`;
+    return `<td class="num">${v == null ? '—' : fmtInt(v)}</td>`;
+  }).join('') + '</tr>').join('') || '<tr><td colspan="11" style="text-align:center;color:var(--muted)">ไม่มีสาขาที่ตรงเงื่อนไข</td></tr>';
+}
+$('shopQ').addEventListener('input', () => DATA && renderShops());
+
+// ── ขาประจำที่หายไป ──
+function renderOverdueFilter() {
+  const od = DATA.overdue || [];
+  const cnt = {}; od.forEach(r => { cnt[r.home] = (cnt[r.home] || 0) + 1; });
+  const homes = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]);
+  const sel = $('odHome'), cur = sel.value;
+  sel.innerHTML = `<option value="">ทุกสาขา (${fmtInt(od.length)} คน)</option>` + homes.map(h => `<option value="${esc(h)}">${esc(h)} (${cnt[h]} คน)</option>`).join('');
+  sel.value = homes.includes(cur) ? cur : '';
+  renderOverdue();
+}
+const OD_SHOW = 300;
+function odRows() { const h = $('odHome').value; return (DATA.overdue || []).filter(r => !h || r.home === h); }
+function renderOverdue() {
+  const rows = odRows();
+  const total = rows.reduce((s, r) => s + r.spend, 0);
+  $('odInfo').textContent = rows.length ? `${fmtInt(rows.length)} คน · ยอดรวมในช่วงนี้ ${fmtBaht(total)}` : '';
+  $('odCsv').disabled = !rows.length;
+  $('odBody').innerHTML = rows.slice(0, OD_SHOW).map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.mem)}</td><td>${esc(r.tier)}</td>
+    <td>${esc(r.home)}</td><td class="num">${fmtInt(r.visits)}</td><td class="num">${r.med_gap == null ? '—' : fmtInt(r.med_gap)}</td>
+    <td class="num">${fmtInt(r.since)}</td><td>${esc(r.last)}</td><td class="num">${fmtInt(r.spend)}</td><td class="num">${fmtInt(r.per_visit)}</td></tr>`).join('')
+    || '<tr><td colspan="10" style="text-align:center;color:var(--green)">✅ ไม่มีขาประจำที่หายไปในช่วง/สาขานี้</td></tr>';
+  $('odCap').textContent = (rows.length > OD_SHOW ? `แสดง ${OD_SHOW} คนแรก (ยอดสูงสุด) — ดาวน์โหลด CSV เพื่อดูทั้งหมด · ` : '') +
+    'รายชื่อเป็นรหัสสมาชิกเท่านั้น (ไม่มีชื่อ/เบอร์) — ค้นรายละเอียดต่อใน CM POS';
+}
+$('odHome').addEventListener('change', renderOverdue);
+$('odCsv').addEventListener('click', () => {
+  const rows = odRows();
+  const head = ['รหัสสมาชิก', 'ระดับ', 'สาขาหลัก', 'ครั้งที่มา', 'รอบปกติ (วัน)', 'ไม่มาแล้ว (วัน)', 'มาล่าสุด', 'ยอดรวม ฿', 'ยอด/ครั้ง ฿'];
+  const q = (v) => { const s = String(v ?? ''); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  // รหัสสมาชิกเป็นตัวเลขยาว — ใส่ ="…" กัน Excel แปลงเป็นเลขวิทยาศาสตร์
+  const lines = [head.join(',')].concat(rows.map(r => [`="${r.mem}"`, r.tier, r.home, r.visits, r.med_gap ?? '', r.since, r.last, r.spend, r.per_visit].map(q).join(',')));
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  const h = $('odHome').value;
+  a.href = URL.createObjectURL(blob); a.download = `abp_winback_${h ? h.replace(/[^\w-]+/g, '_') : 'all'}_${DATA.meta.end}.csv`;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+});
+
+// ── ตัวกรอง ──
+$('fqPeriod').addEventListener('change', () => { regTouched = false; load(); });
+$('fqReg').addEventListener('change', () => { regTouched = true; load(); });
+$('fqType').addEventListener('change', () => { $('fqShop').value = ''; load(); });
+$('fqShop').addEventListener('change', load);
+$('btnRefresh').addEventListener('click', load);
+if (AUTH_OK) load();
+</script>
+</body>
+</html>
