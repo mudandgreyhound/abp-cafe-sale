@@ -404,7 +404,8 @@ const LS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k)
 
 const token = LS('abp_token');
 const tokenExp = parseInt(LS('abp_token_exp') || '0', 10);
-if (!token || Date.now() >= tokenExp) window.location.href = 'login.html';
+const AUTH_OK = !!token && Date.now() < tokenExp;
+if (!AUTH_OK) window.location.replace('login.html');
 document.getElementById('whoLabel').textContent = LS('abp_full_name') || '';
 
 function logout() {
@@ -857,6 +858,7 @@ document.getElementById('btnRefresh').addEventListener('click', () => loadSummar
 document.addEventListener('visibilitychange', () => { if (!document.hidden && dateEl.value === todayStr()) loadSummary(true); });
 
 (async function init() {
+  if (!AUTH_OK) return;          // ยังไม่ login — กำลังเด้งไปหน้า login ไม่ต้องยิง API
   await loadTypeOptions();
   await loadSummary();
   setupAutoRefresh();
