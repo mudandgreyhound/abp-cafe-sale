@@ -95,7 +95,9 @@
       localStorage.setItem('abp_token', data.access_token);
       localStorage.setItem('abp_token_exp', String(data.expires_at || (Date.now() + 12 * 3600 * 1000)));
       localStorage.setItem('abp_full_name', data.full_name || '');
-      window.location.href = 'index.html';
+      // ไปหน้าแรกที่มีสิทธิ์ (ไม่มีสักหน้า → index.html จะแสดงว่ายังไม่ได้รับสิทธิ์)
+      const first = (data.pages || [])[0];
+      window.location.href = first ? first.href : 'index.html';
     } catch (e2) {
       err.textContent = (e2 && e2.message === 'Failed to fetch')
         ? 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — ลองใหม่อีกครั้ง' : e2.message;

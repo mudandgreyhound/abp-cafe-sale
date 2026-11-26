@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ABP จัดการผู้ใช้</title>
+<link rel="icon" type="image/png" href="assets/abp-logo-sm.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand:#E3A21A; --brand-dk:#A8740A; --brand-lt:#FDF4DE; --brand-ln:#F1D697;
+    --charcoal:#4B5057; --terra:#D9532F; --terra-lt:#FDEDE7;
+    --cream:#F7F6F3; --ink:#2B2E33; --muted:#8f949a; --border:#e4e2dc; --line:#eeece7;
+    --green:#16a34a; --green-lt:#e8f6ee; --red:#dc2626;
+  }
+  *{box-sizing:border-box}
+  body{ margin:0; background:var(--cream); color:var(--ink); font-family:'Sarabun','Nunito',sans-serif; font-size:15px; }
+  .hidden{display:none !important}
+  a{color:inherit}
+
+  .top{ background:#fff; border-bottom:2px solid var(--line); padding:12px 16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .top img{ height:26px; width:auto; }
+  .top h1{ margin:0; font-family:'Nunito',sans-serif; font-size:17px; font-weight:900; color:var(--charcoal); }
+  .top nav{ display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; align-items:center; }
+  .nav-link{ padding:7px 12px; border-radius:10px; text-decoration:none; font-weight:700; font-family:'Nunito',sans-serif; font-size:13px; color:#374151; }
+  .nav-link:hover{ background:var(--brand-lt); }
+  .who{ color:var(--muted); font-size:13px; }
+
+  .wrap{ max-width:1100px; margin:0 auto; padding:18px 16px 40px; }
+  .card{ background:#fff; border:1px solid var(--border); border-radius:14px; padding:18px; margin-bottom:18px; }
+  .card h2{ margin:0 0 4px; font-family:'Nunito',sans-serif; font-size:16px; font-weight:900; }
+  .hint{ color:var(--muted); font-size:13px; margin:0 0 14px; }
+
+  .tbl-wrap{ overflow-x:auto; border:1px solid var(--line); border-radius:10px; }
+  table{ border-collapse:collapse; width:100%; min-width:760px; }
+  th,td{ padding:9px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle; white-space:nowrap; }
+  th{ background:var(--brand-lt); font-family:'Nunito',sans-serif; font-size:12px; font-weight:800; color:var(--charcoal); }
+  th.c, td.c{ text-align:center; }
+  tr:last-child td{ border-bottom:0; }
+  tr.dirty td{ background:#fffbef; }
+  .uname{ font-weight:700; }
+  .sub{ color:var(--muted); font-size:12px; }
+  .chip{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:700; margin-right:4px; }
+  .chip.on{ background:var(--green-lt); color:var(--green); }
+  .chip.off{ background:#f1f1f1; color:#6b7280; }
+  .chip.lock{ background:var(--terra-lt); color:var(--terra); }
+  input[type=checkbox]{ width:18px; height:18px; accent-color:var(--brand-dk); cursor:pointer; }
+  input[type=checkbox]:disabled{ cursor:not-allowed; }
+
+  .btn{ border:1px solid var(--border); background:#fff; color:var(--ink); border-radius:9px; padding:6px 11px;
+        font-family:'Sarabun',sans-serif; font-size:13px; font-weight:600; cursor:pointer; }
+  .btn:hover:not(:disabled){ border-color:var(--brand); background:var(--brand-lt); }
+  .btn:disabled{ opacity:.45; cursor:not-allowed; }
+  .btn.primary{ background:var(--brand); border-color:var(--brand); color:#fff; }
+  .btn.primary:hover:not(:disabled){ background:var(--brand-dk); border-color:var(--brand-dk); }
+  .btn.danger:hover:not(:disabled){ border-color:var(--terra); background:var(--terra-lt); color:var(--terra); }
+  .acts{ display:flex; gap:6px; }
+
+  .grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px 16px; }
+  @media (max-width:640px){ .grid{ grid-template-columns:1fr; } }
+  label.f{ display:flex; flex-direction:column; gap:5px; font-size:13px; font-weight:600; color:var(--charcoal); }
+  input[type=text], input[type=password]{ border:1px solid var(--border); border-radius:9px; padding:9px 11px; font:inherit; font-size:15px; background:#fff; color:var(--ink); }
+  input[type=text]:focus, input[type=password]:focus{ outline:2px solid var(--brand-ln); border-color:var(--brand); }
+  .checks{ display:flex; flex-wrap:wrap; gap:10px 18px; margin:14px 0; }
+  .checks label{ display:flex; align-items:center; gap:7px; font-weight:600; cursor:pointer; }
+  .msg{ margin-top:10px; font-size:14px; }
+  .msg.err{ color:var(--red); }
+
+  .toast{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--ink); color:#fff;
+          padding:10px 16px; border-radius:10px; font-size:14px; z-index:50; max-width:calc(100% - 32px); }
+  .toast.err{ background:var(--red); }
+
+  dialog{ border:0; border-radius:14px; padding:20px; width:min(420px, calc(100% - 32px)); }
+  dialog::backdrop{ background:rgba(0,0,0,.35); }
+  dialog h3{ margin:0 0 12px; font-family:'Nunito',sans-serif; font-size:16px; }
+  .dlg-acts{ display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+  .state{ padding:26px; text-align:center; color:var(--muted); }
+</style>
+</head>
+<body>
+<header class="top">
+  <img src="assets/abp-logo-sm.png" alt="ABP" width="45" height="26">
+  <h1>⚙️ จัดการผู้ใช้</h1>
+  <nav>
+    <a class="nav-link" href="index.html">📈 Sale Monitor</a>
+    <a class="nav-link" href="frequency.html">🔁 ความถี่ลูกค้า</a>
+    <span class="who" id="whoLabel"></span>
+    <button class="btn" id="btnLogout">ออกจากระบบ</button>
+  </nav>
+</header>
+
+<div class="wrap">
+  <section class="card">
+    <h2>ผู้ใช้ทั้งหมด</h2>
+    <p class="hint">ติ๊กหน้าที่แต่ละคนเห็นได้ แล้วกด <b>บันทึก</b> ที่แถวนั้น — มีผลทันทีที่หน้าของ user นั้น refresh ·
+      <b>⭐ Admin</b> = เห็นทุกหน้า + หน้านี้ · user ใหม่ยังไม่เห็นหน้าใดจนกว่าจะติ๊กให้</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr id="headRow"></tr></thead>
+        <tbody id="userRows"><tr><td class="state">กำลังโหลด…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>➕ เพิ่มผู้ใช้ใหม่</h2>
+    <p class="hint">Username ใช้ a-z A-Z 0-9 . _ - ยาว 3–50 ตัว (เช่น รหัสพนักงาน) · รหัสผ่านอย่างน้อย 4 ตัว</p>
+    <form id="addForm" autocomplete="off">
+      <div class="grid">
+        <label class="f">Username <input type="text" id="nUser" required maxlength="50"></label>
+        <label class="f">ชื่อ-นามสกุล <input type="text" id="nName" maxlength="100"></label>
+        <label class="f">Password <input type="password" id="nPw1" required autocomplete="new-password"></label>
+        <label class="f">ยืนยัน Password <input type="password" id="nPw2" required autocomplete="new-password"></label>
+      </div>
+      <div class="checks" id="nChecks">
+        <label><input type="checkbox" id="nAdmin"> ⭐ Admin</label>
+      </div>
+      <button class="btn primary" type="submit" id="btnAdd">➕ เพิ่มผู้ใช้</button>
+      <div class="msg err hidden" id="addErr"></div>
+    </form>
+  </section>
+</div>
+
+<dialog id="pwDlg">
+  <form method="dialog" id="pwForm">
+    <h3>🔑 ตั้งรหัสผ่านใหม่ — <span id="pwUser"></span></h3>
+    <label class="f">รหัสผ่านใหม่ <input type="password" id="pw1" autocomplete="new-password"></label>
+    <div style="height:10px"></div>
+    <label class="f">ยืนยันรหัสผ่านใหม่ <input type="password" id="pw2" autocomplete="new-password"></label>
+    <div class="msg err hidden" id="pwErr"></div>
+    <div class="dlg-acts">
+      <button class="btn" type="button" id="pwCancel">ยกเลิก</button>
+      <button class="btn primary" type="submit" id="pwSave">ตั้งรหัส (ปลดล็อกด้วย)</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast hidden" id="toast"></div>
+
+<script>
+const API_BASE = "https://abp-cafe-sale.mobile1234.site";
+const LS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } };
+const token = LS('abp_token');
+if (!token || Date.now() >= parseInt(LS('abp_token_exp') || '0', 10)) window.location.replace('login.html');
+document.getElementById('whoLabel').textContent = LS('abp_full_name') || '';
+function logout() { LS('abp_token', null); LS('abp_token_exp', null); LS('abp_full_name', null); window.location.href = 'login.html'; }
+document.getElementById('btnLogout').addEventListener('click', logout);
+
+async function api(method, path, body) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method, headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (res.status === 401) { logout(); throw new Error('กรุณา login ใหม่'); }
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 403 && path === '/api/admin/users' && method === 'GET') { window.location.replace('index.html'); throw new Error(''); }
+  if (!res.ok) throw new Error(data.detail || `ทำรายการไม่สำเร็จ (${res.status})`);
+  return data;
+}
+
+let toastT;
+function toast(msg, err) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast' + (err ? ' err' : '');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.add('hidden'), 3500);
+}
+function el(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  Object.assign(e, props || {});
+  kids.forEach(k => e.append(k));
+  return e;
+}
+
+let STATE = { me: '', pages: [], users: [] };
+
+function renderHead() {
+  const h = document.getElementById('headRow'); h.innerHTML = '';
+  h.append(el('th', { textContent: 'ผู้ใช้' }), el('th', { textContent: 'สถานะ' }), el('th', { className: 'c', textContent: '⭐ Admin' }));
+  STATE.pages.forEach(p => h.append(el('th', { className: 'c', textContent: p.label })));
+  h.append(el('th', { textContent: 'เข้าใช้ล่าสุด' }), el('th', { textContent: 'จัดการ' }));
+}
+
+function renderRows() {
+  const tb = document.getElementById('userRows'); tb.innerHTML = '';
+  if (!STATE.users.length) { tb.append(el('tr', {}, el('td', { className: 'state', colSpan: 99, textContent: 'ยังไม่มีผู้ใช้' }))); return; }
+  STATE.users.forEach(u => {
+    const self = u.username === STATE.me;
+    const tr = el('tr');
+    const who = el('td', {}, el('div', { className: 'uname', textContent: u.username }),
+                             el('div', { className: 'sub', textContent: u.full_name && u.full_name !== u.username ? u.full_name : '' }));
+    const st = el('td');
+    st.append(el('span', { className: 'chip ' + (u.active ? 'on' : 'off'), textContent: u.active ? 'ใช้งาน' : 'ปิดอยู่' }));
+    if (u.locked) st.append(el('span', { className: 'chip lock', textContent: '🔒 ล็อก' }));
+
+    const adm = el('input', { type: 'checkbox', checked: u.role === 'admin', disabled: self,
+                              title: self ? 'ถอดสิทธิ์ admin ของตัวเองไม่ได้' : 'เห็นทุกหน้า + จัดการผู้ใช้' });
+    const pageBoxes = STATE.pages.map(p => el('input', { type: 'checkbox', checked: u.role === 'admin' || u.pages.includes(p.key) }));
+    const save = el('button', { className: 'btn primary', type: 'button', textContent: 'บันทึก', disabled: true });
+
+    const syncAdmin = () => pageBoxes.forEach((b, i) => {
+      b.disabled = adm.checked;
+      if (adm.checked) b.checked = true;
+      else if (b.dataset.restore !== undefined) { b.checked = b.dataset.restore === '1'; }
+    });
+    pageBoxes.forEach((b, i) => { b.dataset.restore = u.pages.includes(STATE.pages[i].key) ? '1' : '0'; });
+    const markDirty = () => {
+      const role = adm.checked ? 'admin' : 'user';
+      const pages = STATE.pages.filter((p, i) => pageBoxes[i].checked).map(p => p.key);
+      const dirty = role !== u.role || (role === 'user' && pages.join(',') !== u.pages.join(','));
+      save.disabled = !dirty; tr.classList.toggle('dirty', dirty);
+    };
+    adm.addEventListener('change', () => { syncAdmin(); markDirty(); });
+    pageBoxes.forEach(b => b.addEventListener('change', () => { b.dataset.restore = b.checked ? '1' : '0'; markDirty(); }));
+    syncAdmin();
+
+    save.addEventListener('click', async () => {
+      save.disabled = true;
+      const role = adm.checked ? 'admin' : 'user';
+      const pages = role === 'admin' ? u.pages : STATE.pages.filter((p, i) => pageBoxes[i].checked).map(p => p.key);
+      try { const r = await api('POST', `/api/admin/users/${encodeURIComponent(u.username)}/access`, { role, pages }); toast(r.message); await load(); }
+      catch (e) { toast(e.message, true); save.disabled = false; }
+    });
+
+    const pwBtn = el('button', { className: 'btn', type: 'button', textContent: '🔑 ตั้งรหัสใหม่' });
+    pwBtn.addEventListener('click', () => openPw(u.username));
+    const tog = el('button', { className: 'btn' + (u.active ? ' danger' : ''), type: 'button',
+                               textContent: u.active ? '⛔ ปิดบัญชี' : '✅ เปิดบัญชี', disabled: self && u.active,
+                               title: self && u.active ? 'ปิดบัญชีของตัวเองไม่ได้' : '' });
+    tog.addEventListener('click', async () => {
+      if (u.active && !confirm(`ปิดบัญชี ${u.username}? (login ไม่ได้ และหน้าที่เปิดอยู่จะใช้ไม่ได้)`)) return;
+      tog.disabled = true;
+      try { const r = await api('POST', `/api/admin/users/${encodeURIComponent(u.username)}/active`, { active: !u.active }); toast(r.message); await load(); }
+      catch (e) { toast(e.message, true); tog.disabled = false; }
+    });
+
+    tr.append(who, st, el('td', { className: 'c' }, adm));
+    pageBoxes.forEach(b => tr.append(el('td', { className: 'c' }, b)));
+    tr.append(el('td', { className: 'sub', textContent: u.last_login_at || '—' }),
+              el('td', {}, el('div', { className: 'acts' }, save, pwBtn, tog)));
+    tb.append(tr);
+  });
+}
+
+function renderAddChecks() {
+  const box = document.getElementById('nChecks');
+  box.querySelectorAll('[data-page]').forEach(n => n.remove());
+  STATE.pages.forEach(p => {
+    const cb = el('input', { type: 'checkbox', value: p.key });
+    const lb = el('label', {}, cb, ' ' + p.label); lb.dataset.page = p.key;
+    box.append(lb);
+  });
+  const adm = document.getElementById('nAdmin');
+  const sync = () => box.querySelectorAll('[data-page] input').forEach(c => { c.disabled = adm.checked; if (adm.checked) c.checked = true; });
+  adm.onchange = sync; sync();
+}
+
+async function load() {
+  try {
+    const d = await api('GET', '/api/admin/users');
+    STATE = { me: d.me, pages: d.all_pages, users: d.users };
+    renderHead(); renderRows();
+    if (!document.querySelector('#nChecks [data-page]')) renderAddChecks();
+  } catch (e) {
+    if (e.message) document.getElementById('userRows').innerHTML = '';
+    if (e.message) document.getElementById('userRows').append(el('tr', {}, el('td', { className: 'state', textContent: e.message })));
+  }
+}
+
+document.getElementById('addForm').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const err = document.getElementById('addErr'); err.classList.add('hidden');
+  const pw1 = document.getElementById('nPw1').value, pw2 = document.getElementById('nPw2').value;
+  if (pw1 !== pw2) { err.textContent = 'รหัสผ่านทั้ง 2 ช่องไม่ตรงกัน'; err.classList.remove('hidden'); return; }
+  const admin = document.getElementById('nAdmin').checked;
+  const body = {
+    username: document.getElementById('nUser').value.trim(),
+    full_name: document.getElementById('nName').value.trim(),
+    password: pw1, role: admin ? 'admin' : 'user',
+    pages: admin ? [] : [...document.querySelectorAll('#nChecks [data-page] input:checked')].map(c => c.value),
+  };
+  const btn = document.getElementById('btnAdd'); btn.disabled = true;
+  try {
+    const r = await api('POST', '/api/admin/users', body);
+    toast(r.message); ev.target.reset(); renderAddChecks(); await load();
+  } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); }
+  finally { btn.disabled = false; }
+});
+
+const dlg = document.getElementById('pwDlg');
+let pwTarget = '';
+function openPw(u) {
+  pwTarget = u; document.getElementById('pwUser').textContent = u;
+  document.getElementById('pw1').value = ''; document.getElementById('pw2').value = '';
+  document.getElementById('pwErr').classList.add('hidden');
+  dlg.showModal(); document.getElementById('pw1').focus();
+}
+document.getElementById('pwCancel').addEventListener('click', () => dlg.close());
+document.getElementById('pwForm').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const e1 = document.getElementById('pwErr'); e1.classList.add('hidden');
+  const a = document.getElementById('pw1').value, b = document.getElementById('pw2').value;
+  if (a !== b) { e1.textContent = 'รหัสผ่านทั้ง 2 ช่องไม่ตรงกัน'; e1.classList.remove('hidden'); return; }
+  const btn = document.getElementById('pwSave'); btn.disabled = true;
+  try { const r = await api('POST', `/api/admin/users/${encodeURIComponent(pwTarget)}/password`, { password: a }); dlg.close(); toast(r.message); await load(); }
+  catch (e) { e1.textContent = e.message; e1.classList.remove('hidden'); }
+  finally { btn.disabled = false; }
+});
+
+load();
+</script>
+</body>
+</html>
